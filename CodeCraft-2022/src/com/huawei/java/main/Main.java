@@ -99,11 +99,11 @@ public class Main {
                 qos_d.put(temp[0], map);
             }
             //初始化qos_s
-            HashMap<String, Integer> map = new HashMap<>();
             int len_site = siteName.size();
             int len_demand = demandName.size();
             for (int i = 0; i < len_demand; i++) {
                 String demand_name = demandName.get(i);
+                HashMap<String, Integer> map = new HashMap<>();
                 for (int j = 0; j < len_site; j++) {
                     map.put(siteName.get(j), qos_d.get(siteName.get(j)).get(demand_name));
                 }
@@ -189,10 +189,10 @@ public class Main {
                 site_bandwidth_copy.put(site.getKey(), resband);
                 //当前节点使用 = 分配前 - 分配后
                 map.put(site.getKey(), site.getValue()-resband);
-                System.out.println(map);
+                System.out.println("map: " + map);
 
             }
-            dispatchStrategy.put(curClient,new HashMap<>(map));
+            dispatchStrategy.put(curClient, map);
             //site_bandwidth_copy记录了节点的带宽剩余情况
         }
 
@@ -211,7 +211,7 @@ public class Main {
 //        System.out.println(demandList);
         //调用max优先分配，返回一个节点使用情况的map
         HashMap<String, HashMap<String, Integer>> answer = dispatchbasedMaxBandSite(demandList);
-        System.out.println(answer);
+        System.out.println("answer: " + answer);
     }
 
 
