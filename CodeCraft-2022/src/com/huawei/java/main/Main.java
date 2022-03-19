@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
 
@@ -143,61 +144,61 @@ public class Main {
     }
 
     public static HashMap<String, Integer> dispatchbasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap){
+        //dispatchStrategy存储最终的分配方案
+        HashMap<String, HashMap<String, Integer>> dispatchStrategy = new HashMap<>();
+
         //复制一份 节点-剩余容量 map,因为每个时间节点开始都是满的，所以每次都直接复制最大值。
-        HashMap<String, Integer> site_resband = new HashMap<>(site_bandwidth);
+        HashMap<String, Integer> site_bandwidth_copy = new HashMap<>(site_bandwidth);
 
-
-        //对每个用户都得到用户名和需求
         for (Map.Entry<String, Integer> entry : demandMap){
+            //客户节点名称
             String curClient = entry.getKey();
+            //客户节点带宽需求
             int curDemand = entry.getValue();
 
-            //根据用户名得到所有能连接的site，和其剩余带宽
-            //先求site
-            HashMap<String, Integer> allSites = qos_s.get(curClient);
-
-            //保存一个可以连接的site和其对应的剩余带宽的map
-            HashMap<String, Integer> SitecanConnect_withband = new HashMap<>();
-
-            for(Map.Entry<String, Integer> Site_qos : allSites.entrySet()){
-                String s = Site_qos.getKey();
-                int qos =Site_qos.getValue();
-                if(qos<=qos_constraint){
-                    SitecanConnect_withband.put(s,site_resband.get(s));
-                }
-            }
-
+            //先处理最大流量需求的客户节点，取出该客户节点和所有边缘节点的qos进行筛选，选出小于qos_config
+            HashMap<String, Integer> siteMap = qos_s.get(curClient);
+            List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteMap.entrySet());
+            //过滤出小于qos_config的边缘节点
+            siteList = siteList.stream().filter(o1 -> o1.getValue()<400).collect(Collectors.toList());
+            //siteList原先存的是<边缘节点名称，边缘节点到客户节点的qos>，现在替换成<边缘节点名称，边缘节点剩余的带宽>
+            siteList.forEach(o1 -> o1.setValue( site_bandwidth_copy.get(o1.getKey())) );
             //对site根据当前容量进行排序
-            List<Map.Entry<String, Integer>> connectedSiteList = new ArrayList<>(SitecanConnect_withband.entrySet());
-            connectedSiteList.sort((o1,o2) -> o2.getValue()-o1.getValue());
-            //遍历site
+            siteList.sort((o1,o2) -> o2.getValue()-o1.getValue());
 
-            for(Map.Entry<String, Integer> site_maxband :connectedSiteList){
-                String s = site_maxband.getKey();
-                int resband =site_maxband.getValue();
-                //满足 直接都放进去
-                //不满足 放完，对下一个site继续放
-                if(resband>=curDemand){
+            //遍历siteList
+            for(Map.Entry<String, Integer> site : siteList){
+                if(curDemand == 0)
+                    break;
+
+                //resband表示当前site的剩余带宽
+                int resband = site.getValue();
+
+                //当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
+                if(resband >= curDemand){
                     resband -= curDemand;
                     curDemand = 0;
                 }
+                //当前边缘节点的剩余带宽小于客户节点的带宽需求，先放能放下的部分，继续放下一个边缘节点
                 else{
                     curDemand -= resband;
                     resband = 0;
                 }
-                //记录剩余带宽
 
-                site_resband.put(s,resband);
+                //记录剩余带宽
+                site_bandwidth_copy.put(site.getKey(), resband);
 
             }
-            //到此，第一个用户的需求根据可以连接的节点的带宽从大到小分配结束
-            //site_resband记录了节点的带宽剩余情况。
+            //site_bandwidth_copy记录了节点的带宽剩余情况
         }
-        //到此，site_resband记录了所有节点的带宽剩余情况。
+
+        //！！！这里以下还没改
+        //--------------------------------------------------
+        //到此，site_bandwidth_copy记录了所有节点的带宽剩余情况。
         //如果要得到答案（带宽的使用情况），则用 最大值-剩余情况
         //最大值-剩余情况==0的话 说明该节点没有被使用，无需添加
         HashMap<String, Integer> site_used = new HashMap<>();
-        for (Map.Entry<String, Integer> entry : site_resband.entrySet()){
+        for (Map.Entry<String, Integer> entry : site_bandwidth_copy.entrySet()){
             String s = entry.getKey();
             int b =site_bandwidth.get(s) - entry.getValue();
             if(b==0) continue;
