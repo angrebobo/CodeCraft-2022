@@ -8,7 +8,7 @@ public class Main {
     //demandName存储客户节点的名称
     static List<String> demandName = new ArrayList<>();
     //time存储各个时刻
-    static List<String> time = new ArrayList<>();
+    static List<String> timeList = new ArrayList<>();
     //siteName存储边缘节点的名称
     static List<String> siteName = new ArrayList<>();
     //qos_constraint存储qos的上限值
@@ -17,8 +17,10 @@ public class Main {
     static HashMap<String, Integer> site_bandwidth = new HashMap<>();
     //demand存储每个时刻客户节点的带宽需求，格式为<时刻，<客户节点名称，带宽需求>>
     static HashMap<String, HashMap<String, Integer>> demand = new HashMap<>();
-    //qos存储边缘节点和客户节点之间的qos，格式为<边缘节点名称，<客户节点名称，qos>>
-    static HashMap<String, HashMap<String, Integer>> qos = new HashMap<>();
+    //qos_d存储边缘节点和客户节点之间的qos，格式为<边缘节点名称，<客户节点名称，qos>>
+    static HashMap<String, HashMap<String, Integer>> qos_d = new HashMap<>();
+    ////qos_s存储边缘节点和客户节点之间的qos，格式为<客户节点名称，<边缘节点名称，qos>>。为什么要多存一份？因为可以用不同的方式来拿数据。
+    static HashMap<String, HashMap<String, Integer>> qos_s = new HashMap<>();
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
@@ -42,8 +44,8 @@ public class Main {
                 siteName.add(temp[0]);
                 site_bandwidth.put(temp[0], Integer.valueOf(temp[1]));
             }
-            System.out.println("site_bandwidth: " + site_bandwidth);
-            System.out.println("siteName: " + siteName);
+//            System.out.println("site_bandwidth: " + site_bandwidth);
+//            System.out.println("siteName: " + siteName);
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -65,13 +67,13 @@ public class Main {
                 for (int i = 1; i < len; i++) {
                     map.put(demandName.get(i-1), Integer.valueOf(temp[i]));
                 }
-                time.add(temp[0]);
+                timeList.add(temp[0]);
                 //demand存储<时间，map>
                 demand.put(temp[0], map);
             }
-            System.out.println("demand: " + demand);
-            System.out.println("demandName: " + demandName);
-            System.out.println("time: " + time);
+//            System.out.println("demand: " + demand);
+//            System.out.println("demandName: " + demandName);
+//            System.out.println("time: " + timeList);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -93,9 +95,16 @@ public class Main {
                 for (int i = 1; i < len; i++) {
                     map.put(name.get(i), Integer.valueOf(temp[i]));
                 }
-                qos.put(temp[0], map);
+                qos_d.put(temp[0], map);
             }
-            System.out.println("qos: " + qos);
+            //初始化qos_s
+            HashMap<String, Integer> map = new HashMap<>();
+
+
+
+
+
+//            System.out.println("qos_d: " + qos_d);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -109,7 +118,7 @@ public class Main {
                     qos_constraint = Integer.valueOf(properties.getProperty(s.toString()));
                 }
             }
-            System.out.println("qos_constraint: " + qos_constraint);
+//            System.out.println("qos_constraint: " + qos_constraint);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -128,6 +137,16 @@ public class Main {
     }
 
     public static void dispatch(){
+        int time_size = timeList.size();
+        //先对第一个时间做一次调度，后续再写全部时间的调度
+        String T = timeList.get(0);
+        //得到当前时刻，所有客户节点的需求流量
+        HashMap<String, Integer> demandMap = demand.get(T);
+        List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demandMap.entrySet());
+        //按需求流量的大小进行排序，排序方式为从大到小
+        demandList.sort((o1,o2) -> o2.getValue()-o1.getValue());
+
+
 
     }
 
@@ -135,7 +154,7 @@ public class Main {
 
     public static void main(String[] args) {
         init();
-
+        dispatch();
 
     }
 }
