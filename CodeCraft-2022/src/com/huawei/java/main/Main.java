@@ -141,16 +141,11 @@ public class Main {
         Arrays.stream(array).forEach(temp::add);
         return temp;
     }
+
     public static HashMap<String, Integer> dispatchbasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap){
-        //深复制一份 节点-剩余容量 map； 因为每个时间节点开始都是满的，所以每次都直接复制最大值。
-        // String直接使用引用进行浅复制，因为只会更改当前带宽值，所以引用String应该没关系
-        HashMap<String, Integer> site_resband = new HashMap<>();
-        for (Map.Entry<String, Integer> entry : site_bandwidth.entrySet()){
-            String s = entry.getKey();
-            int b =entry.getValue();
-            site_resband.put(s,b);
-        }
-        //System.out.println(site_resband);
+        //复制一份 节点-剩余容量 map,因为每个时间节点开始都是满的，所以每次都直接复制最大值。
+        HashMap<String, Integer> site_resband = new HashMap<>(site_bandwidth);
+
 
         //对每个用户都得到用户名和需求
         for (Map.Entry<String, Integer> entry : demandMap){
@@ -159,12 +154,12 @@ public class Main {
 
             //根据用户名得到所有能连接的site，和其剩余带宽
             //先求site
-            HashMap<String, Integer> ALLsite = qos_s.get(curClient);
+            HashMap<String, Integer> allSites = qos_s.get(curClient);
 
             //保存一个可以连接的site和其对应的剩余带宽的map
             HashMap<String, Integer> SitecanConnect_withband = new HashMap<>();
 
-            for(Map.Entry<String, Integer> Site_qos : ALLsite.entrySet()){
+            for(Map.Entry<String, Integer> Site_qos : allSites.entrySet()){
                 String s = Site_qos.getKey();
                 int qos =Site_qos.getValue();
                 if(qos<=qos_constraint){
@@ -220,12 +215,10 @@ public class Main {
         List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demandMap.entrySet());
         //按需求流量的大小进行排序，排序方式为从大到小
         demandList.sort((o1,o2) -> o2.getValue()-o1.getValue());
-        System.out.println(demandList);
+//        System.out.println(demandList);
         //调用max优先分配，返回一个节点使用情况的map
         HashMap<String, Integer> site_used = dispatchbasedMaxBandSite(demandList);
         System.out.println(site_used);
-
-
     }
 
 
@@ -233,6 +226,5 @@ public class Main {
     public static void main(String[] args) {
         init();
         dispatch();
-
     }
 }
