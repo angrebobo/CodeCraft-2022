@@ -26,10 +26,10 @@ public class Main {
      * @return
      */
     public static void init(){
-        String demandFile = "C:\\Users\\AngreBoBo\\Desktop\\华为\\线下调试数据\\线下调试数据\\data\\demand.csv";
-        String site_bandwidthFile = "C:\\Users\\AngreBoBo\\Desktop\\华为\\线下调试数据\\线下调试数据\\data\\site_bandwidth.csv";
-        String qosFile = "C:\\Users\\AngreBoBo\\Desktop\\华为\\线下调试数据\\线下调试数据\\data\\qos.csv";
-        String qos_config = "C:\\Users\\AngreBoBo\\Desktop\\华为\\线下调试数据\\线下调试数据\\data\\config.ini";
+        String demandFile = "CodeCraft-2022/demand.csv";
+        String site_bandwidthFile = "CodeCraft-2022/site_bandwidth.csv";
+        String qosFile = "CodeCraft-2022/qos.csv";
+        String qos_config = "CodeCraft-2022/config.ini";
         String line;
         String[] temp;
 
@@ -42,8 +42,8 @@ public class Main {
                 siteName.add(temp[0]);
                 site_bandwidth.put(temp[0], Integer.valueOf(temp[1]));
             }
-//            System.out.println("site_bandwidth: " + site_bandwidth);
-//            System.out.println("siteName: " + siteName);
+            System.out.println("site_bandwidth: " + site_bandwidth);
+            System.out.println("siteName: " + siteName);
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -69,9 +69,9 @@ public class Main {
                 //demand存储<时间，map>
                 demand.put(temp[0], map);
             }
-//            System.out.println("demand: " + demand);
-//            System.out.println("demandName: " + demandName);
-//            System.out.println("time: " + time);
+            System.out.println("demand: " + demand);
+            System.out.println("demandName: " + demandName);
+            System.out.println("time: " + time);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -95,7 +95,7 @@ public class Main {
                 }
                 qos.put(temp[0], map);
             }
-//            System.out.println("qos: " + qos);
+            System.out.println("qos: " + qos);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -109,7 +109,7 @@ public class Main {
                     qos_constraint = Integer.valueOf(properties.getProperty(s.toString()));
                 }
             }
-//            System.out.println("qos_constraint: " + qos_constraint);
+            System.out.println("qos_constraint: " + qos_constraint);
 
         } catch (IOException e) {
             e.printStackTrace();
