@@ -143,7 +143,7 @@ public class Main {
         return temp;
     }
 
-    public static HashMap<String, Integer> dispatchbasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap){
+    public static HashMap<String, HashMap<String, Integer>> dispatchbasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap){
         //dispatchStrategy存储最终的分配方案
         HashMap<String, HashMap<String, Integer>> dispatchStrategy = new HashMap<>();
 
@@ -166,6 +166,7 @@ public class Main {
             //对site根据当前容量进行排序
             siteList.sort((o1,o2) -> o2.getValue()-o1.getValue());
 
+            HashMap<String, Integer> map = new HashMap<>();
             //遍历siteList
             for(Map.Entry<String, Integer> site : siteList){
                 if(curDemand == 0)
@@ -173,7 +174,6 @@ public class Main {
 
                 //resband表示当前site的剩余带宽
                 int resband = site.getValue();
-
                 //当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
                 if(resband >= curDemand){
                     resband -= curDemand;
@@ -187,24 +187,16 @@ public class Main {
 
                 //记录剩余带宽
                 site_bandwidth_copy.put(site.getKey(), resband);
+                //当前节点使用 = 分配前 - 分配后
+                map.put(site.getKey(), site.getValue()-resband);
+                System.out.println(map);
 
             }
+            dispatchStrategy.put(curClient,new HashMap<>(map));
             //site_bandwidth_copy记录了节点的带宽剩余情况
         }
 
-        //！！！这里以下还没改
-        //--------------------------------------------------
-        //到此，site_bandwidth_copy记录了所有节点的带宽剩余情况。
-        //如果要得到答案（带宽的使用情况），则用 最大值-剩余情况
-        //最大值-剩余情况==0的话 说明该节点没有被使用，无需添加
-        HashMap<String, Integer> site_used = new HashMap<>();
-        for (Map.Entry<String, Integer> entry : site_bandwidth_copy.entrySet()){
-            String s = entry.getKey();
-            int b =site_bandwidth.get(s) - entry.getValue();
-            if(b==0) continue;
-            site_used.put(s,b);
-        }
-        return site_used;
+        return dispatchStrategy;
     }
 
     public static void dispatch(){
@@ -218,8 +210,8 @@ public class Main {
         demandList.sort((o1,o2) -> o2.getValue()-o1.getValue());
 //        System.out.println(demandList);
         //调用max优先分配，返回一个节点使用情况的map
-        HashMap<String, Integer> site_used = dispatchbasedMaxBandSite(demandList);
-        System.out.println(site_used);
+        HashMap<String, HashMap<String, Integer>> answer = dispatchbasedMaxBandSite(demandList);
+        System.out.println(answer);
     }
 
 
