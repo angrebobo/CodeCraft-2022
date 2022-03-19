@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
 
@@ -97,14 +98,21 @@ public class Main {
                 }
                 qos_d.put(temp[0], map);
             }
+
             //初始化qos_s
             HashMap<String, Integer> map = new HashMap<>();
-
-
-
-
+            int len_site = siteName.size();
+            int len_demand = demandName.size();
+            for (int i = 0; i < len_demand; i++) {
+                String demand_name = demandName.get(i);
+                for (int j = 0; j < len_site; j++) {
+                    map.put(siteName.get(j), qos_d.get(siteName.get(j)).get(demand_name));
+                }
+                qos_s.put(demand_name, map);
+            }
 
 //            System.out.println("qos_d: " + qos_d);
+            System.out.println("qos_s: " + qos_s);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -145,9 +153,13 @@ public class Main {
         List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demandMap.entrySet());
         //按需求流量的大小进行排序，排序方式为从大到小
         demandList.sort((o1,o2) -> o2.getValue()-o1.getValue());
+        System.out.println("demandList: " + demandList);
 
-
-
+        //先处理最大流量需求的客户节点，取出该客户节点和所有边缘节点的qos进行筛选，选出小于qos_config
+        HashMap<String, Integer> siteMap = qos_s.get(demandList.get(0).getKey());
+        List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteMap.entrySet());
+        siteList = siteList.stream().filter(o1 -> o1.getValue()<400).collect(Collectors.toList());
+        System.out.println("siteList: " + siteList);
     }
 
 
