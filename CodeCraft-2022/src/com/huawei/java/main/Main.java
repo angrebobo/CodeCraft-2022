@@ -20,7 +20,7 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> demand = new HashMap<>();
     //qos_d存储边缘节点和客户节点之间的qos，格式为<边缘节点名称，<客户节点名称，qos>>
     static HashMap<String, HashMap<String, Integer>> qos_d = new HashMap<>();
-    ////qos_s存储边缘节点和客户节点之间的qos，格式为<客户节点名称，<边缘节点名称，qos>>。为什么要多存一份？因为可以用不同的方式来拿数据。
+    //qos_s存储边缘节点和客户节点之间的qos，格式为<客户节点名称，<边缘节点名称，qos>>。为什么要多存一份？因为可以用不同的方式来拿数据。
     static HashMap<String, HashMap<String, Integer>> qos_s = new HashMap<>();
 
     /**
@@ -158,8 +158,13 @@ public class Main {
         //先处理最大流量需求的客户节点，取出该客户节点和所有边缘节点的qos进行筛选，选出小于qos_config
         HashMap<String, Integer> siteMap = qos_s.get(demandList.get(0).getKey());
         List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteMap.entrySet());
+        //过滤出小于qos_config的边缘节点
         siteList = siteList.stream().filter(o1 -> o1.getValue()<400).collect(Collectors.toList());
-        System.out.println("siteList: " + siteList);
+//        System.out.println("siteList: " + siteList);
+
+
+
+
     }
 
 
