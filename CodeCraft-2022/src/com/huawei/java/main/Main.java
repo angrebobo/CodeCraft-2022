@@ -1,10 +1,8 @@
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class Main {
 
@@ -22,6 +20,7 @@ public class Main {
         List<String> siteName = new ArrayList<>();
         HashMap<String, Integer> site_bandwidth = new HashMap<>();
         HashMap<String, HashMap<String, Integer>> demand = new HashMap<>();
+        HashMap<String, HashMap<String, Integer>> qos = new HashMap<>();
 
         //初始化边缘节点
         try(BufferedReader reader = new BufferedReader(new FileReader(site_bandwidthFile))) {
@@ -61,9 +60,37 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        //初始化qos
+        try(BufferedReader reader = new BufferedReader(new FileReader(qosFile))){
+            List<String> name = new LinkedList<>();
+            while ( (line=reader.readLine()) != null ){
+                temp = line.split(",");
+                int len = temp.length;
+                if("site_name".equals(temp[0])){
+                    for (int i = 0; i < len; i++) {
+                        name.add(temp[i]);
+                    }
+                }
+
+                HashMap<String, Integer> map = new HashMap<>();
+                for (int i = 1; i < len; i++) {
+                    map.put(name.get(i), Integer.valueOf(temp[i]));
+                }
+                qos.put(temp[0], map);
+            }
+            System.out.println(qos);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
-    //将数组转换成List。为什么写该方法：因为Arrays.asList转换后的List不支持增删
+    /**
+     * @Description 将数组转换成List。为什么写该方法：因为Arrays.asList转换后的List不支持增删
+     * @param
+     * @return
+     */
     public static List<String> transferArrayToList(String[] array){
         List<String> temp = new ArrayList<>();
         Arrays.stream(array).forEach(temp::add);
@@ -72,7 +99,5 @@ public class Main {
 
     public static void main(String[] args) {
         init();
-
-
     }
 }
