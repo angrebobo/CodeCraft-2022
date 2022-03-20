@@ -4,6 +4,12 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * @Description 对客户的需求进行排序，先满足需求大的客户
+ * 将客户节点能够连接的边缘节点列出来，按照能够提供的带宽从小到大排序，放到第一个能放下客户需求的边缘节点中
+ * @param
+ * @return
+ */
 public class Main {
 
     //demandName存储客户节点的名称
@@ -24,19 +30,19 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> qos_s = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
-        /*static String demandFile = "data/demand.csv";
+        static String demandFile = "data/demand.csv";
         static String site_bandwidthFile = "data/site_bandwidth.csv";
         static String qosFile = "data/qos.csv";
         static String qos_config = "data/config.ini";
-        static String filepath = "output/solution.txt";*/
+        static String filepath = "output/solution.txt";
 
 
     // ！！！提交到线上用这个环境
-    static String demandFile = "/data/demand.csv";
+    /*static String demandFile = "/data/demand.csv";
     static String site_bandwidthFile = "/data/site_bandwidth.csv";
     static String qosFile = "/data/qos.csv";
     static String qos_config = "/data/config.ini";
-    static String filepath = "/output/solution.txt";
+    static String filepath = "/output/solution.txt";*/
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
@@ -181,7 +187,7 @@ public class Main {
             //siteList原先存的是<边缘节点名称，边缘节点到客户节点的qos>，现在替换成<边缘节点名称，边缘节点剩余的带宽>
             siteList.forEach(o1 -> o1.setValue( site_bandwidth_copy.get(o1.getKey())) );
             //对site根据当前容量进行排序
-            siteList.sort((o1,o2) -> o2.getValue()-o1.getValue());
+            siteList.sort((o1,o2) -> o1.getValue()-o2.getValue());
 
             HashMap<String, Integer> map = new HashMap<>();
             //遍历siteList
@@ -197,10 +203,10 @@ public class Main {
                     curDemand = 0;
                 }
                 //当前边缘节点的剩余带宽小于客户节点的带宽需求，先放能放下的部分，继续放下一个边缘节点
-                else{
-                    curDemand -= resband;
-                    resband = 0;
-                }
+//                else{
+//                    curDemand -= resband;
+//                    resband = 0;
+//                }
 
                 //记录剩余带宽
                 site_bandwidth_copy.put(site.getKey(), resband);
