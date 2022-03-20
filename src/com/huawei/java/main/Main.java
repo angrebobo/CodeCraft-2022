@@ -27,10 +27,10 @@ public class Main {
      * @return
      */
     public static void init(){
-        String demandFile = "CodeCraft-2022/demand.csv";
-        String site_bandwidthFile = "CodeCraft-2022/site_bandwidth.csv";
-        String qosFile = "CodeCraft-2022/qos.csv";
-        String qos_config = "CodeCraft-2022/config.ini";
+        String demandFile = "demand.csv";
+        String site_bandwidthFile = "site_bandwidth.csv";
+        String qosFile = "qos.csv";
+        String qos_config = "config.ini";
         String line;
         String[] temp;
 
