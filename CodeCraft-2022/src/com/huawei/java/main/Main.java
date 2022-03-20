@@ -232,22 +232,34 @@ public class Main {
      */
     public static void writeToFile(HashMap<String, HashMap<String, HashMap<String, Integer>>> result){
         String filepath = "/output/solution.txt";
+        File file = new File(filepath);
+        if(!file.exists()){
+            file.getParentFile().mkdir();
+            try {
+                //创建文件
+                file.createNewFile();
+            } catch (IOException e) {
+                System.out.println("文件创建失败");
+            }
+        }
         try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(filepath))) {
             for(String time : timeList){
-                StringBuffer buffer = new StringBuffer();
+
                 HashMap<String, HashMap<String, Integer>> demandMap = result.get(time);
                 //key代表客户节点名称
                 for(String demand_name : demandName){
+                    StringBuffer buffer = new StringBuffer();
                     buffer.append(demand_name).append(":");
                     HashMap<String, Integer> siteMap = demandMap.get(demand_name);
                     for(String siteName : siteMap.keySet()){
-                        buffer.append("<").append(siteName).append(">").append(",");
+                        buffer.append("<").append(siteName).append(",").append(siteMap.get(siteName)).append(">").append(",");
                     }
                     //删除最后一个逗号
                     buffer.deleteCharAt(buffer.length() - 1);
                     //比赛的运行环境是Linux，所以手动添加换行符
-                    buffer.append("\\n");
+                    buffer.append("\r\n");
                     bufferedWriter.write(buffer.toString());
+                    System.out.print(buffer);
                 }
             }
         } catch (IOException e) {
