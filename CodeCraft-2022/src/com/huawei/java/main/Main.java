@@ -1,6 +1,4 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -49,7 +47,7 @@ public class Main {
 //             System.out.println("siteName: " + siteName);
         }
         catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("初始化 边缘节点 失败");
         }
 
         //初始化客户节点
@@ -76,7 +74,7 @@ public class Main {
 //            System.out.println("demandName: " + demandName);
 //            System.out.println("time: " + timeList);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("初始化 客户节点 失败");
         }
 
         //初始化qos_s和qos_d
@@ -113,7 +111,7 @@ public class Main {
 //            System.out.println("qos_d: " + qos_d);
 //            System.out.println("qos_s: " + qos_s);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("初始化 qos 失败");
         }
 
         //初始化qos的上限值
@@ -128,7 +126,7 @@ public class Main {
 //            System.out.println("qos_constraint: " + qos_constraint);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("初始化 qos_constraint 失败");
         }
     }
 
@@ -205,7 +203,12 @@ public class Main {
         return dispatchStrategy;
     }
 
-    public static Object dispatch(){
+    /**
+     * @Description 每个时刻，执行一次调度
+     * @param
+     * @return
+     */
+    public static HashMap<String, HashMap<String, HashMap<String, Integer>>> dispatch(){
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = new HashMap<>();
         for (String time : timeList){
             //得到当前时刻，所有客户节点的需求流量
@@ -222,11 +225,40 @@ public class Main {
         return result;
     }
 
+    /**
+     * @Description 将调度策略写入到文件中
+     * @param
+     * @return
+     */
+    public static void writeToFile(HashMap<String, HashMap<String, HashMap<String, Integer>>> result){
+        String filepath = "/output/solution.txt";
+        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(filepath))) {
+            for(String time : timeList){
+                StringBuffer buffer = new StringBuffer();
+                HashMap<String, HashMap<String, Integer>> demandMap = result.get(time);
+                //key代表客户节点名称
+                for(String demand_name : demandName){
+                    buffer.append(demand_name).append(":");
+                    HashMap<String, Integer> siteMap = demandMap.get(demand_name);
+                    for(String siteName : siteMap.keySet()){
+                        buffer.append("<").append(siteName).append(">").append(",");
+                    }
+                    //删除最后一个逗号
+                    buffer.deleteCharAt(buffer.length() - 1);
+                    //比赛的运行环境是Linux，所以手动添加换行符
+                    buffer.append("\\n");
+                    bufferedWriter.write(buffer.toString());
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("将调度方案写入文件失败");
+        }
+    }
 
 
     public static void main(String[] args) {
         init();
-        HashMap<String, HashMap<String, HashMap<String, Integer>>> result = (HashMap<String, HashMap<String, HashMap<String, Integer>>>) dispatch();
-
+//        dispatch();
+        writeToFile( dispatch() );
     }
 }
