@@ -1,3 +1,5 @@
+package com.huawei.java.main;
+
 import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
