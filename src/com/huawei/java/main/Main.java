@@ -21,16 +21,27 @@ public class Main {
     ////qos_s存储边缘节点和客户节点之间的qos，格式为<客户节点名称，<边缘节点名称，qos>>。为什么要多存一份？因为可以用不同的方式来拿数据。
     static HashMap<String, HashMap<String, Integer>> qos_s = new HashMap<>();
 
+    // ！！！在idea本地跑用这个路径
+        /*static String demandFile = "data/demand.csv";
+        static String site_bandwidthFile = "data/site_bandwidth.csv";
+        static String qosFile = "data/qos.csv";
+        static String qos_config = "data/config.ini";
+        static String filepath = "output/solution.txt";*/
+
+
+    // ！！！提交到线上用这个环境
+    static String demandFile = "/data/demand.csv";
+    static String site_bandwidthFile = "/data/site_bandwidth.csv";
+    static String qosFile = "/data/qos.csv";
+    static String qos_config = "/data/config.ini";
+    static String filepath = "/output/solution.txt";
+
     /**
      * @Description 初始化方法，读入文件并存储到本地
      * @param
      * @return
      */
     public static void init(){
-        String demandFile = "demand.csv";
-        String site_bandwidthFile = "site_bandwidth.csv";
-        String qosFile = "qos.csv";
-        String qos_config = "config.ini";
         String line;
         String[] temp;
 
@@ -231,7 +242,7 @@ public class Main {
      * @return
      */
     public static void writeToFile(HashMap<String, HashMap<String, HashMap<String, Integer>>> result){
-        String filepath = "/output/solution.txt";
+
         File file = new File(filepath);
         if(!file.exists()){
             file.getParentFile().mkdir();
