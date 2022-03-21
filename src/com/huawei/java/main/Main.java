@@ -252,7 +252,7 @@ public class Main {
                 else{
                     curDispatch -= resband;
                     resband = 0;
-                    curDemand +=curDispatch;
+                    curDemand += curDispatch;
                 }
 
                 //当前节点使用 = 分配前 - 分配后
@@ -263,12 +263,15 @@ public class Main {
                 site_bandwidth_copy.put(siteName, resband);
             }
 
-            //curDemand>0,说明上一轮没有分配完流量，现在再重新分配一次，采用随机法。这里的方法可以换，不过改进应该不大，毕竟剩余的流量较小。
+            //curDemand>0,说明第一轮没有分配完流量，现在再重新分配一次，采用随机法。这里的方法可以换，不过改进应该不大，毕竟剩余的流量较小。
             if(curDemand > 0){
                 for(String siteName : siteSet){
                     Integer resband = site_bandwidth_copy.get(siteName);
-                    if(curDemand == 0 || resband==0)
+
+                    if(curDemand == 0)
                         break;
+                    if(resband == 0)
+                        continue;
 
                     if(resband >= curDemand){
                         resband -= curDemand;
@@ -343,8 +346,9 @@ public class Main {
                     for(String siteName : siteMap.keySet()){
                         buffer.append("<").append(siteName).append(",").append(siteMap.get(siteName)).append(">").append(",");
                     }
-                    //删除最后一个逗号
-                    buffer.deleteCharAt(buffer.length() - 1);
+                    if(buffer.charAt(buffer.length() - 1) == ',')
+                        //删除最后一个逗号
+                        buffer.deleteCharAt(buffer.length() - 1);
                     //比赛的运行环境是Linux，所以手动添加换行符
                     buffer.append("\r\n");
                     bufferedWriter.write(buffer.toString());
