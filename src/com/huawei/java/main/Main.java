@@ -2,6 +2,7 @@ package com.huawei.java.main;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 /**
@@ -28,14 +29,16 @@ public class Main {
     static HashMap<String, Integer> site_bandwidth = new HashMap<>();
     //demand存储每个时刻客户节点的带宽需求，格式为<时刻，<客户节点名称，带宽需求>>
     static HashMap<String, HashMap<String, Integer>> demand = new HashMap<>();
-    //qos_d存储边缘节点和客户节点之间的qos，格式为<边缘节点名称，<客户节点名称，qos>>
-    static HashMap<String, HashMap<String, Integer>> qos_d = new HashMap<>();
-    //qos_s存储边缘节点和客户节点之间的qos，格式为<客户节点名称，<边缘节点名称，qos>>。为什么要多存一份？因为可以用不同的方式来拿数据。
+    //qos_s存储边缘节点和客户节点之间的qos，格式为<边缘节点名称，<客户节点名称，qos>>
     static HashMap<String, HashMap<String, Integer>> qos_s = new HashMap<>();
-    //demandConnectSite存储客户节点能连接到的边缘节点
-    static HashMap<String, List<String>> demandConnectSite = new HashMap<>();
-    //siteConnectDemand存储边缘节点能连接到的客户节点
-    static HashMap<String, List<String>> siteConnectDemand = new HashMap<>();
+    //qos_d存储边缘节点和客户节点之间的qos，格式为<客户节点名称，<边缘节点名称，qos>>。为什么要多存一份？因为可以用不同的方式来拿数据。
+    static HashMap<String, HashMap<String, Integer>> qos_d = new HashMap<>();
+    //存储客户节点和边缘节点的qos
+    static Integer[][] qos;
+    //demandConnectSite存储客户节点能连接到的边缘节点，格式为<客户节点名称，<边缘节点名称，该边缘节点名称能连接的客户节点数>>
+    static HashMap<String, HashMap<String, Integer>> demandConnectSite = new HashMap<>();
+    //siteConnectDemand存储边缘节点能连接到的客户节点，格式为<边缘节点名称，<客户节点名称，该客户节点名称能连接的边缘节点数>>
+    static HashMap<String, HashMap<String, Integer>> siteConnectDemand = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
         static String demandFile = "data/demand.csv";
@@ -136,15 +139,7 @@ public class Main {
                 for (int i = 1; i < len; i++) {
                     map.put(name.get(i), Integer.valueOf(temp[i]));
                 }
-                qos_d.put(temp[0], map);
-
-                List<String> demandList = new ArrayList<>();
-                for (int i = 1; i < len; i++) {
-                    if( Integer.parseInt(temp[i]) < qos_constraint){
-                        demandList.add( name.get(i) );
-                    }
-                }
-                siteConnectDemand.put(temp[0], demandList);
+                qos_s.put(temp[0], map);
 
             }
             //初始化qos_s
@@ -154,27 +149,75 @@ public class Main {
                 String demand_name = demandName.get(i);
                 HashMap<String, Integer> map = new HashMap<>();
                 for (int j = 0; j < len_site; j++) {
-                    map.put(siteName.get(j), qos_d.get(siteName.get(j)).get(demand_name));
+                    map.put(siteName.get(j), qos_s.get(siteName.get(j)).get(demand_name));
                 }
-                qos_s.put(demand_name, map);
+                qos_d.put(demand_name, map);
             }
-
-
-            for (String demand_name : demandName) {
-                List<String> siteList = new ArrayList<>();
-                for (String site_name : siteName) {
-                    if( qos_d.get(site_name).get(demand_name) < qos_constraint )
-                        siteList.add(site_name);
-                }
-                demandConnectSite.put(demand_name, siteList);
-            }
-
-
 //            System.out.println("qos_d: " + qos_d);
 //            System.out.println("qos_s: " + qos_s);
         } catch (IOException e) {
             System.out.println("初始化 qos 失败");
         }
+
+        qos = new Integer[siteName.size()][demandName.size()];
+        try(BufferedReader reader = new BufferedReader(new FileReader(qosFile))){
+            int row = 0;
+            while ( (line=reader.readLine()) != null ){
+                temp = line.split(",");
+                int len = temp.length;
+                if("site_name".equals(temp[0]))
+                    continue;
+
+                for (int i = 1; i < len; i++) {
+                    qos[row][i-1] = (Integer.parseInt(temp[i]) < qos_constraint) ? 1 : 0;
+                }
+                row++;
+            }
+//            for (int i = 0; i < qos.length; i++) {
+//                for (int j = 0; j < qos[0].length; j++) {
+//                    System.out.print(qos[i][j] + " ");
+//                }
+//                System.out.println();
+//            }
+        } catch (IOException e) {
+            System.out.println("初始化 qos二维数组 失败");
+        }
+
+
+        HashMap<String, Integer> siteConnectNum = new HashMap<>();
+        HashMap<String, Integer> demandConnectNum = new HashMap<>();
+        for (int i = 0; i < siteName.size(); i++) {
+            siteConnectNum.put(siteName.get(i), Arrays.stream(qos[i]).mapToInt(Integer::intValue).sum());
+        }
+        for (int i = 0; i < demandName.size(); i++) {
+            int count = 0;
+            for (int j = 0; j < siteName.size(); j++) {
+                count += qos[j][i];
+            }
+            demandConnectNum.put(demandName.get(i), count);
+        }
+
+        for (int i = 0; i < siteName.size(); i++) {
+            HashMap<String, Integer> map = new HashMap<>();
+            for (int j = 0; j < demandName.size(); j++) {
+                if(qos[i][j] == 1){
+                    map.put(demandName.get(j), demandConnectNum.get(demandName.get(j)));
+                    siteConnectDemand.put(siteName.get(i), map);
+                }
+            }
+        }
+
+        for (int i = 0; i < demandName.size(); i++) {
+            HashMap<String, Integer> map = new HashMap<>();
+            for (int j = 0; j < siteName.size(); j++) {
+                if(qos[j][i] == 1){
+                    map.put(siteName.get(j), siteConnectNum.get(siteName.get(j)));
+                    demandConnectSite.put(demandName.get(i), map);
+                }
+            }
+        }
+
+//        System.out.println("siteConnectDemand: " + siteConnectDemand);
     }
 
     /**
@@ -207,25 +250,14 @@ public class Main {
             //客户节点带宽需求
             int curDemand = entry.getValue();
 
-            //先处理最大流量需求的客户节点，取出该客户节点和所有边缘节点的qos进行筛选，选出小于qos_config
-            HashMap<String, Integer> siteMap = new HashMap<>( qos_s.get(curClient) );
-            List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteMap.entrySet());
-            //过滤出小于qos_config的边缘节点
-            siteList = siteList.stream().filter( o1 -> o1.getValue()<400 ).collect(Collectors.toList());
-            //siteList原先存的是<边缘节点名称，边缘节点到客户节点的qos>，现在替换成<边缘节点名称，边缘节点剩余的带宽>
-            siteList.forEach(o1 -> o1.setValue( site_bandwidth_copy.get(o1.getKey())) );
-            //对site根据当前容量进行排序
-            siteList.sort((o1,o2) -> o1.getValue()-o2.getValue());
-            //lenOfSite表示当前客户节点能连接的边缘节点数
-            int lenOfSite = siteList.size();
 
-            List<String> canConnectSite = demandConnectSite.get(curClient);
-            //一、这里的map有比较大小的需求，考虑下是否用treemap来存储
-            //二、把qos_s删掉，只存一份qos_d即可
-            List<Map<String, Integer>> siteList = new ArrayList<>();
-            for (String siteName : canConnectSite){
-                siteList.add(new )
-            }
+            HashMap<String, Integer> siteMap = new HashMap<>( demandConnectSite.get(curClient) );
+            HashMap<String, Integer> siteBandWidthMap = new HashMap<>(siteMap);
+            List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteBandWidthMap.entrySet());
+            //siteList原先存的是<边缘节点名称，该边缘节点名称能连接的客户节点数>，现在替换成<边缘节点名称，边缘节点剩余的带宽>
+            siteList.forEach(o1 -> o1.setValue( site_bandwidth_copy.get(o1.getKey())) );
+
+            //计算边缘节点的权重
 
 
             HashMap<String, Integer> map = new HashMap<>();
@@ -319,7 +351,7 @@ public class Main {
                     //比赛的运行环境是Linux，所以手动添加换行符
                     buffer.append("\r\n");
                     bufferedWriter.write(buffer.toString());
-                    System.out.print(buffer);
+//                    System.out.print(buffer);
                 }
             }
         } catch (IOException e) {
