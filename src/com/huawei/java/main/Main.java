@@ -229,13 +229,14 @@ public class Main {
 
         return dispatchStrategy;
     }
+
     /**
      * @Description 具体的调度方法:对客户的需求进行排序，先满足需求大的客户
      * 将客户节点能够连接的边缘节点列出来，按照能够提供的带宽大小排序，先放到能提供大带宽的边缘节点中
      * @param: demandMap存储<用户节点名称，用户节点的带宽需求>
-     * @return  
+     * @return
      */
-    public static HashMap<String, HashMap<String, Integer>> dispatchBasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap){
+    /*public static HashMap<String, HashMap<String, Integer>> dispatchBasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap){
         //dispatchStrategy存储最终的分配方案
         HashMap<String, HashMap<String, Integer>> dispatchStrategy = new HashMap<>();
 
@@ -293,7 +294,7 @@ public class Main {
         }
 
         return dispatchStrategy;
-    }
+    }*/
 
     /**
      * @Description 每个时刻，执行一次调度
