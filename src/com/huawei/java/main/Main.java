@@ -1,6 +1,7 @@
 package com.huawei.java.main;
 
 import util.Check;
+import util.ToFile;
 
 import java.io.*;
 import java.util.*;
@@ -35,6 +36,7 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> demandConnectSite = new HashMap<>();
     //siteConnectDemand存储边缘节点能连接到的客户节点，格式为<边缘节点名称，<客户节点名称，该客户节点名称能连接的边缘节点数>>
     static HashMap<String, HashMap<String, Integer>> siteConnectDemand = new HashMap<>();
+    static HashMap<String, HashMap<String, String>> log = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
         static String demandFile = "data/demand.csv";
@@ -42,13 +44,15 @@ public class Main {
         static String qosFile = "data/qos.csv";
         static String qos_config = "data/config.ini";
         static String filepath = "output/solution.txt";
+        static String logPath = "output/log.txt";
 
     // ！！！提交到线上用这个环境
     /*static String demandFile = "/data/demand.csv";
     static String site_bandwidthFile = "/data/site_bandwidth.csv";
     static String qosFile = "/data/qos.csv";
     static String qos_config = "/data/config.ini";
-    static String filepath = "/output/solution.txt";*/
+    static String filepath = "/output/solution.txt";
+    static String logPath = "/output/log.txt";*/
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
@@ -68,7 +72,7 @@ public class Main {
                     qos_constraint = Integer.valueOf(properties.getProperty(s.toString()));
                 }
             }
-//            System.out.println("qos_constraint: " + qos_constraint);
+            System.out.println("qos_constraint: " + qos_constraint);
 
         } catch (IOException e) {
             System.out.println("初始化 qos_constraint 失败");
@@ -174,7 +178,8 @@ public class Main {
                 }
             }
         }
-//        System.out.println("siteConnectDemand: " + siteConnectDemand);
+        System.out.println("siteConnectDemand: " + siteConnectDemand);
+        System.out.println("demandConnectSite: " + demandConnectSite);
     }
 
     /**
@@ -197,9 +202,10 @@ public class Main {
      *  * B的权重就是4份，C的权重就是3份，D的权重就是2份
      * @return  
      */
-    public static HashMap<String, HashMap<String, Integer>> dispatchBasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap){
+    public static HashMap<String, HashMap<String, Integer>> dispatchBasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap, String time){
         //dispatchStrategy存储最终的分配方案
         HashMap<String, HashMap<String, Integer>> dispatchStrategy = new HashMap<>();
+
         HashMap<String, Integer> site_bandwidth_copy = new HashMap<>(site_bandwidth);
 
         for (Map.Entry<String, Integer> entry : demandMap){
@@ -239,6 +245,14 @@ public class Main {
                 //计算该客户节点分配给该边缘节点的带宽
                 int curDispatch = (int) Math.floor((double) curDemand * (double)w/ (double)sum );
 
+                //记录每次的权重分配，方便后续排查错误
+                String name = time + "," + "客户:" + curClient + "," +"边缘:" + siteName;
+                HashMap<String, String> value = new HashMap<>();
+                value.put("index", index+"");
+                value.put("w", w+"");
+                value.put("conList", conList.toString());
+                value.put("weight", (int) Math.floor((double) curDemand * (double)w/ (double)sum ) + "");
+                log.put(name, value);
 
                 //当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
                 if(resband >= curDispatch){
@@ -283,6 +297,12 @@ public class Main {
                     Integer alreadyDispatch = map.get(siteName);
                     map.put(siteName, alreadyDispatch+site_bandwidth_copy.get(siteName)-resband);
                     site_bandwidth_copy.put(siteName, resband);
+
+                    //记录每次的权重分配，方便后续排查错误
+                    String name = time + ", " + "客户：" + curClient + ", " +"边缘：" + siteName;
+                    HashMap<String, String> value = new HashMap<>();
+                    value.put("second" , "当前需求为：" + curDemand +", 分配了"+(site_bandwidth_copy.get(siteName)-resband)+"");
+                    log.put(name, value);
                 }
             }
 
@@ -307,7 +327,7 @@ public class Main {
             //按需求流量的大小进行排序，排序方式为从大到小
             demandList.sort((o1,o2) -> o2.getValue()-o1.getValue());
 //        System.out.println(demandList);
-            HashMap<String, HashMap<String, Integer>> dispatchStrategy = dispatchBasedMaxBandSite(demandList);
+            HashMap<String, HashMap<String, Integer>> dispatchStrategy = dispatchBasedMaxBandSite(demandList, time);
 //        System.out.println("dispatchStrategy: " + dispatchStrategy);
             result.put(time, dispatchStrategy);
         }
@@ -315,55 +335,11 @@ public class Main {
         return result;
     }
 
-    /**
-     * @Description 将调度策略写入到文件中
-     * @param
-     * @return
-     */
-    public static void writeToFile(HashMap<String, HashMap<String, HashMap<String, Integer>>> result){
-
-        File file = new File(filepath);
-        if(!file.exists()){
-            file.getParentFile().mkdir();
-            try {
-                //创建文件
-                file.createNewFile();
-            } catch (IOException e) {
-                System.out.println("文件创建失败");
-            }
-        }
-        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(filepath))) {
-            for(String time : timeList){
-
-                HashMap<String, HashMap<String, Integer>> demandMap = result.get(time);
-                //key代表客户节点名称
-                for(String demand_name : demandName){
-                    StringBuffer buffer = new StringBuffer();
-                    buffer.append(demand_name).append(":");
-                    HashMap<String, Integer> siteMap = demandMap.get(demand_name);
-                    for(String siteName : siteMap.keySet()){
-                        buffer.append("<").append(siteName).append(",").append(siteMap.get(siteName)).append(">").append(",");
-                    }
-                    if(buffer.charAt(buffer.length() - 1) == ',')
-                        //删除最后一个逗号
-                        buffer.deleteCharAt(buffer.length() - 1);
-                    //比赛的运行环境是Linux，所以手动添加换行符
-                    buffer.append("\r\n");
-                    bufferedWriter.write(buffer.toString());
-//                    System.out.print(buffer);
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("将调度方案写入文件失败");
-        }
-    }
-
-
     public static void main(String[] args) {
         init();
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = dispatch();
-        writeToFile( result );
-
+        ToFile.writeToFile(filepath,timeList,demandName,result);
+        ToFile.writeLog(logPath, log);
         System.out.println(Check.check_1(demand, demandName, timeList, siteName, result));
     }
 }

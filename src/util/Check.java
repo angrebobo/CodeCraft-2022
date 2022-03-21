@@ -26,7 +26,7 @@ public class Check {
                 int s = values.stream().mapToInt(Integer::intValue).sum();
                 if(s != sum){
                     System.out.println("不合理");
-                    System.out.println("时间："+time + ", " + "客户节点：" + demandName.get(i) + ", " + "的需求为 " + sum);
+                    System.out.println(time + "," + "客户:" + demandName.get(i) + "," +"边缘:" + siteName);
                     System.out.println("分配的流量为：" + s);
                     System.out.println("分配方案： " + temp);
                     System.out.println();
