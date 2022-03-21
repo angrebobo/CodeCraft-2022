@@ -1,15 +1,17 @@
 package com.huawei.java.main;
 
+import util.Check;
+
 import java.io.*;
 import java.util.*;
 
 /**
  * @Description 对客户的需求进行排序，先满足需求大的客户
- * 将客户节点能够连接的边缘节点列出来，按照边缘节点能够连接的客户节点数进行排序（从小到大）
- * 例如当前时刻处理A客户节点，A可以连接到以下几个边缘节点(B,C,D)，B可以连接2个客户节点，C可以连接3个客户节点，D可以连接4个客户节点
- * (B,2) < (C,3) < (D,4)
- * 那么A客户节点分配给B边缘节点的流量要多一点，即B边缘节点的权重要高一点
- * B的权重就是4份，C的权重就是3份，C的权重就是2份
+ *  * 将客户节点能够连接的边缘节点列出来，按照边缘节点能够连接的客户节点数进行排序（从小到大）
+ *  * 例如当前时刻处理A客户节点，A可以连接到以下几个边缘节点(B,C,D)，B可以连接2个客户节点，C可以连接3个客户节点，D可以连接4个客户节点
+ *  * (B,2) < (C,3) < (D,4)
+ *  * 那么A客户节点分配给B边缘节点的流量要多一点，即B边缘节点的权重要高一点
+ *  * B的权重就是4份，C的权重就是3份，C的权重就是2份
  * @param
  * @return
  */
@@ -240,8 +242,6 @@ public class Main {
     public static HashMap<String, HashMap<String, Integer>> dispatchBasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap){
         //dispatchStrategy存储最终的分配方案
         HashMap<String, HashMap<String, Integer>> dispatchStrategy = new HashMap<>();
-
-        //复制一份 节点-剩余容量 map,因为每个时间节点开始都是满的，所以每次都直接复制最大值。
         HashMap<String, Integer> site_bandwidth_copy = new HashMap<>(site_bandwidth);
 
         for (Map.Entry<String, Integer> entry : demandMap){
@@ -253,9 +253,8 @@ public class Main {
             HashMap<String, Integer> siteMap = new HashMap<>( demandConnectSite.get(curClient) );
             //temp用来防止siteList的排序操作影响到siteMap的数据
             HashMap<String, Integer> temp = new HashMap<>(siteMap);
-            List<Map.Entry<String, Integer>> siteList = new ArrayList<>(temp.entrySet());
-            //siteList原先存的是<边缘节点名称，该边缘节点名称能连接的客户节点数>，现在替换成<边缘节点名称，边缘节点剩余的带宽>
-            siteList.forEach(o1 -> o1.setValue( site_bandwidth_copy.get(o1.getKey())) );
+            //siteSet存储能连接的边缘节点
+            Set<String> siteSet =  temp.keySet();
 
             //对边缘节点的连接数进行排序，连接数越小的边缘节点，权重应该越高
             List<Integer> conList = new ArrayList<>();
@@ -265,39 +264,65 @@ public class Main {
             Integer sum = conList.stream().mapToInt(Integer::intValue).sum();
 
             HashMap<String, Integer> map = new HashMap<>();
-            int count = 0;
-            //遍历siteList
-            for(Map.Entry<String, Integer> site : siteList){
-                if(curDemand == 0)
+
+            for(String siteName : siteSet){
+                //resband表示当前site的剩余带宽
+                Integer resband = site_bandwidth_copy.get(siteName);
+
+                if(curDemand == 0 || resband==0)
                     break;
 
-                int connectNum = siteMap.get(site.getKey());
+                //权重计算
+                int connectNum = siteMap.get(siteName);
                 int index = conList.indexOf(connectNum);
                 int w = conList.get(conList.size()-1-index);
+                //计算该客户节点分配给该边缘节点的带宽
+                int curDispatch = (int) Math.floor((double) curDemand * (double)w/ (double)sum );
 
-                int curDispatch
 
-                count++;
-                //resband表示当前site的剩余带宽
-                int resband = site.getValue();
                 //当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
-                if(resband >= curDemand){
-                    resband -= curDemand;
-                    curDemand = 0;
+                if(resband >= curDispatch){
+                    resband -= curDispatch;
+                    //更新客户节点的流量需求
+                    curDemand = curDemand - curDispatch;
                 }
                 //当前边缘节点的剩余带宽小于客户节点的带宽需求，先放能放下的部分，继续放下一个边缘节点
                 else{
-                    curDemand -= resband;
+                    curDispatch -= resband;
                     resband = 0;
+                    curDemand +=curDispatch;
                 }
 
-                //记录剩余带宽
-                site_bandwidth_copy.put(site.getKey(), resband);
                 //当前节点使用 = 分配前 - 分配后
-                map.put(site.getKey(), site.getValue()-resband);
+                map.put(siteName, site_bandwidth_copy.get(siteName)-resband);
 //                System.out.println("map: " + map);
 
+                //记录剩余带宽
+                site_bandwidth_copy.put(siteName, resband);
             }
+
+            //curDemand>0,说明上一轮没有分配完流量，现在再重新分配一次，采用随机法。这里的方法可以换，不过改进应该不大，毕竟剩余的流量较小。
+            if(curDemand > 0){
+                for(String siteName : siteSet){
+                    Integer resband = site_bandwidth_copy.get(siteName);
+                    if(curDemand == 0 || resband==0)
+                        break;
+
+                    if(resband >= curDemand){
+                        resband -= curDemand;
+                        curDemand = 0;
+                    }
+                    else {
+                        curDemand -= resband;
+                        resband = 0;
+                    }
+
+                    Integer alreadyDispatch = map.get(siteName);
+                    map.put(siteName, alreadyDispatch+site_bandwidth_copy.get(siteName)-resband);
+                    site_bandwidth_copy.put(siteName, resband);
+                }
+            }
+
             dispatchStrategy.put(curClient, map);
             //site_bandwidth_copy记录了节点的带宽剩余情况
         }
@@ -372,7 +397,9 @@ public class Main {
 
     public static void main(String[] args) {
         init();
-//        dispatch();
-        writeToFile( dispatch() );
+        HashMap<String, HashMap<String, HashMap<String, Integer>>> result = dispatch();
+        writeToFile( result );
+
+//        System.out.println(Check.check_1(demand, demandName, timeList, siteName, result));
     }
 }
