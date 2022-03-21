@@ -1,5 +1,5 @@
 package com.huawei.java.main;
-
+import util.Check;
 import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -377,6 +377,8 @@ public class Main {
     public static void main(String[] args) {
         init();
 //        dispatch();
-        writeToFile( dispatch() );
+        HashMap<String, HashMap<String, HashMap<String, Integer>>> result = dispatch();
+        System.out.println(Check.check_1(demand, demandName, timeList, siteName, result));
+//        writeToFile( dispatch() );
     }
 }
