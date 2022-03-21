@@ -1,6 +1,6 @@
 package com.huawei.java.main;
 
-import util.Check;
+//import util.Check;
 
 import java.io.*;
 import java.util.*;
