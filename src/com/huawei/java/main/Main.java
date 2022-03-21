@@ -39,19 +39,18 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> siteConnectDemand = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
-        static String demandFile = "data/demand.csv";
+        /*static String demandFile = "data/demand.csv";
         static String site_bandwidthFile = "data/site_bandwidth.csv";
         static String qosFile = "data/qos.csv";
         static String qos_config = "data/config.ini";
-        static String filepath = "output/solution.txt";
-
+        static String filepath = "output/solution.txt";*/
 
     // ！！！提交到线上用这个环境
-    /*static String demandFile = "/data/demand.csv";
+    static String demandFile = "/data/demand.csv";
     static String site_bandwidthFile = "/data/site_bandwidth.csv";
     static String qosFile = "/data/qos.csv";
     static String qos_config = "/data/config.ini";
-    static String filepath = "/output/solution.txt";*/
+    static String filepath = "/output/solution.txt";
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
