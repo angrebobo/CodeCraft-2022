@@ -37,18 +37,18 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> siteConnectDemand = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
-        /*static String demandFile = "data/demand.csv";
+        static String demandFile = "data/demand.csv";
         static String site_bandwidthFile = "data/site_bandwidth.csv";
         static String qosFile = "data/qos.csv";
         static String qos_config = "data/config.ini";
-        static String filepath = "output/solution.txt";*/
+        static String filepath = "output/solution.txt";
 
     // ！！！提交到线上用这个环境
-    static String demandFile = "/data/demand.csv";
+    /*static String demandFile = "/data/demand.csv";
     static String site_bandwidthFile = "/data/site_bandwidth.csv";
     static String qosFile = "/data/qos.csv";
     static String qos_config = "/data/config.ini";
-    static String filepath = "/output/solution.txt";
+    static String filepath = "/output/solution.txt";*/
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
@@ -194,7 +194,7 @@ public class Main {
      *  * 例如当前时刻处理A客户节点，A可以连接到以下几个边缘节点(B,C,D)，B可以连接2个客户节点，C可以连接3个客户节点，D可以连接4个客户节点
      *  * (B,2) < (C,3) < (D,4)
      *  * 那么A客户节点分配给B边缘节点的流量要多一点，即B边缘节点的权重要高一点
-     *  * B的权重就是4份，C的权重就是3份，C的权重就是2份
+     *  * B的权重就是4份，C的权重就是3份，D的权重就是2份
      * @return  
      */
     public static HashMap<String, HashMap<String, Integer>> dispatchBasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap){
@@ -209,10 +209,8 @@ public class Main {
             int curDemand = entry.getValue();
 
             HashMap<String, Integer> siteMap = new HashMap<>( demandConnectSite.get(curClient) );
-            //temp用来防止siteList的排序操作影响到siteMap的数据
-            HashMap<String, Integer> temp = new HashMap<>(siteMap);
             //siteSet存储能连接的边缘节点
-            Set<String> siteSet =  temp.keySet();
+            Set<String> siteSet =  siteMap.keySet();
 
             //对边缘节点的连接数进行排序，连接数越小的边缘节点，权重应该越高
             List<Integer> conList = new ArrayList<>();
@@ -366,6 +364,6 @@ public class Main {
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = dispatch();
         writeToFile( result );
 
-//        System.out.println(Check.check_1(demand, demandName, timeList, siteName, result));
+        System.out.println(Check.check_1(demand, demandName, timeList, siteName, result));
     }
 }
