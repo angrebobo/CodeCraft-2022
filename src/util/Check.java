@@ -29,6 +29,11 @@ public class Check {
                     System.out.println("分配方案： " + temp);
                     ans = false;
                 }
+                else {
+                    System.out.println("时间："+time + ", " + "客户节点：" + demandName.get(i) + ", " + "的需求为 " + sum);
+                    System.out.println("分配的流量为：" + s);
+                    System.out.println("分配方案：" + values);
+                }
             }
         }
         return ans;

@@ -1,6 +1,6 @@
 package com.huawei.java.main;
 
-//import util.Check;
+import util.Check;
 
 import java.io.*;
 import java.util.*;
@@ -29,10 +29,6 @@ public class Main {
     static HashMap<String, Integer> site_bandwidth = new HashMap<>();
     //demand存储每个时刻客户节点的带宽需求，格式为<时刻，<客户节点名称，带宽需求>>
     static HashMap<String, HashMap<String, Integer>> demand = new HashMap<>();
-    //qos_s存储边缘节点和客户节点之间的qos，格式为<边缘节点名称，<客户节点名称，qos>>
-    static HashMap<String, HashMap<String, Integer>> qos_s = new HashMap<>();
-    //qos_d存储边缘节点和客户节点之间的qos，格式为<客户节点名称，<边缘节点名称，qos>>。为什么要多存一份？因为可以用不同的方式来拿数据。
-    static HashMap<String, HashMap<String, Integer>> qos_d = new HashMap<>();
     //存储客户节点和边缘节点的qos
     static Integer[][] qos;
     //demandConnectSite存储客户节点能连接到的边缘节点，格式为<客户节点名称，<边缘节点名称，该边缘节点名称能连接的客户节点数>>
@@ -121,43 +117,7 @@ public class Main {
             System.out.println("初始化 客户节点 失败");
         }
 
-        //初始化qos_s和qos_d
-        try(BufferedReader reader = new BufferedReader(new FileReader(qosFile))){
-            List<String> name = new LinkedList<>();
-            while ( (line=reader.readLine()) != null ){
-                temp = line.split(",");
-                int len = temp.length;
-                if("site_name".equals(temp[0])){
-                    for (int i = 0; i < len; i++) {
-                        name.add(temp[i]);
-                    }
-                    continue;
-                }
-
-                HashMap<String, Integer> map = new HashMap<>();
-                for (int i = 1; i < len; i++) {
-                    map.put(name.get(i), Integer.valueOf(temp[i]));
-                }
-                qos_s.put(temp[0], map);
-
-            }
-            //初始化qos_s
-            int len_site = siteName.size();
-            int len_demand = demandName.size();
-            for (int i = 0; i < len_demand; i++) {
-                String demand_name = demandName.get(i);
-                HashMap<String, Integer> map = new HashMap<>();
-                for (int j = 0; j < len_site; j++) {
-                    map.put(siteName.get(j), qos_s.get(siteName.get(j)).get(demand_name));
-                }
-                qos_d.put(demand_name, map);
-            }
-//            System.out.println("qos_d: " + qos_d);
-//            System.out.println("qos_s: " + qos_s);
-        } catch (IOException e) {
-            System.out.println("初始化 qos 失败");
-        }
-
+        //初始化 qos二维数组
         qos = new Integer[siteName.size()][demandName.size()];
         try(BufferedReader reader = new BufferedReader(new FileReader(qosFile))){
             int row = 0;
@@ -181,7 +141,6 @@ public class Main {
         } catch (IOException e) {
             System.out.println("初始化 qos二维数组 失败");
         }
-
 
         HashMap<String, Integer> siteConnectNum = new HashMap<>();
         HashMap<String, Integer> demandConnectNum = new HashMap<>();
@@ -215,7 +174,6 @@ public class Main {
                 }
             }
         }
-
 //        System.out.println("siteConnectDemand: " + siteConnectDemand);
     }
 
@@ -269,8 +227,12 @@ public class Main {
                 //resband表示当前site的剩余带宽
                 Integer resband = site_bandwidth_copy.get(siteName);
 
-                if(curDemand == 0 || resband==0)
+                //用户节点的带宽已分配完，结束循环
+                if(curDemand == 0)
                     break;
+                //当前边缘节点已经无带宽可承担，跳过该节点
+                if(resband == 0)
+                    continue;
 
                 //权重计算
                 int connectNum = siteMap.get(siteName);
@@ -348,7 +310,7 @@ public class Main {
 //        System.out.println("dispatchStrategy: " + dispatchStrategy);
             result.put(time, dispatchStrategy);
         }
-        System.out.println("result: " + result);
+//        System.out.println("result: " + result);
         return result;
     }
 
