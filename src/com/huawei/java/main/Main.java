@@ -29,19 +29,19 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> qos_s = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
-        /*static String demandFile = "data/demand.csv";
+        static String demandFile = "data/demand.csv";
         static String site_bandwidthFile = "data/site_bandwidth.csv";
         static String qosFile = "data/qos.csv";
         static String qos_config = "data/config.ini";
-        static String filepath = "output/solution.txt";*/
+        static String filepath = "output/solution.txt";
 
 
     // ！！！提交到线上用这个环境
-    static String demandFile = "/data/demand.csv";
+    /*static String demandFile = "/data/demand.csv";
     static String site_bandwidthFile = "/data/site_bandwidth.csv";
     static String qosFile = "/data/qos.csv";
     static String qos_config = "/data/config.ini";
-    static String filepath = "/output/solution.txt";
+    static String filepath = "/output/solution.txt";*/
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
@@ -158,7 +158,77 @@ public class Main {
         Arrays.stream(array).forEach(temp::add);
         return temp;
     }
-    
+
+
+    /**
+     * @Description 按照需求大小排序节点，按照历史宽带占用大小排序site
+     * @param demandMap
+     * @return
+     */
+    public static HashMap<String, HashMap<String, Integer>>
+        dispatchBasedDemandClientAndUsedBandSite(List<Map.Entry<String, Integer>> demandMap,HashMap<String, Integer> siteWithMaxUsedBand){
+        //dispatchStrategy存储最终的分配方案
+        HashMap<String, HashMap<String, Integer>> dispatchStrategy = new HashMap<>();
+
+        //复制一份 节点-剩余容量 map,因为每个时间节点开始都是满的，所以每次都直接复制最大值。
+        HashMap<String, Integer> site_bandwidth_copy = new HashMap<>(site_bandwidth);
+
+        for (Map.Entry<String, Integer> entry : demandMap){
+            //客户节点名称
+            String curClient = entry.getKey();
+            //客户节点带宽需求
+            int curDemand = entry.getValue();
+
+            //先处理最大流量需求的客户节点，取出该客户节点和所有边缘节点的qos进行筛选，选出小于qos_config
+            HashMap<String, Integer> siteMap = new HashMap<>( qos_s.get(curClient) );
+            List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteMap.entrySet());
+            //过滤出小于qos_config的边缘节点
+            siteList = siteList.stream().filter( o1 -> o1.getValue()<400 ).collect(Collectors.toList());
+
+            //siteList存的是<边缘节点名称，边缘节点历史最大使用带宽>
+            siteList.forEach(o1 -> o1.setValue( siteWithMaxUsedBand.get(o1.getKey())) );
+
+            //对site根据历史最大使用情况进行排序
+            siteList.sort((o1,o2) -> o2.getValue()-o1.getValue());
+
+            HashMap<String, Integer> map = new HashMap<>();
+
+            //遍历siteList
+            for(Map.Entry<String, Integer> site : siteList){
+                if(curDemand == 0)
+                    break;
+
+                //resband表示当前site的剩余带宽
+                int resband = site_bandwidth_copy.get(site.getKey());
+                int beforResband = resband;
+
+                //当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
+                if(resband >= curDemand){
+                    resband -= curDemand;
+                    curDemand = 0;
+                }
+                //当前边缘节点的剩余带宽小于客户节点的带宽需求，先放能放下的部分，继续放下一个边缘节点
+                else{
+                    curDemand -= resband;
+                    resband = 0;
+                }
+
+                //记录剩余带宽
+                site_bandwidth_copy.put(site.getKey(), resband);
+
+                //当前节点使用 = 分配前 - 分配后
+                map.put(site.getKey(), beforResband - resband);
+//                System.out.println("map: " + map);
+                siteWithMaxUsedBand.put(site.getKey(),Math.max(siteWithMaxUsedBand.get(site.getKey()),site_bandwidth.get(site.getKey()) - resband));
+                //System.out.println(siteWithMaxUsedBand);
+            }
+            dispatchStrategy.put(curClient, map);
+            //site_bandwidth_copy记录了节点的带宽剩余情况
+
+        }
+
+        return dispatchStrategy;
+    }
     /**
      * @Description 具体的调度方法:对客户的需求进行排序，先满足需求大的客户
      * 将客户节点能够连接的边缘节点列出来，按照能够提供的带宽大小排序，先放到能提供大带宽的边缘节点中
@@ -212,6 +282,10 @@ public class Main {
                 //当前节点使用 = 分配前 - 分配后
                 map.put(site.getKey(), site.getValue()-resband);
 //                System.out.println("map: " + map);
+                System.out.print(curClient);
+                System.out.print(curDemand);
+
+                System.out.print(site);
 
             }
             dispatchStrategy.put(curClient, map);
@@ -228,6 +302,12 @@ public class Main {
      */
     public static HashMap<String, HashMap<String, HashMap<String, Integer>>> dispatch(){
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = new HashMap<>();
+
+//      记录每个节点历史最大使用带宽
+        HashMap<String, Integer> siteWithMaxUsedBand = new HashMap<>();
+//      初始化,所有使用情况都为0
+        for(String site : siteName) siteWithMaxUsedBand.put(site,0);
+
         for (String time : timeList){
             //得到当前时刻，所有客户节点的需求流量
             HashMap<String, Integer> demandMap = demand.get(time);
@@ -235,11 +315,18 @@ public class Main {
             //按需求流量的大小进行排序，排序方式为从大到小
             demandList.sort((o1,o2) -> o2.getValue()-o1.getValue());
 //        System.out.println(demandList);
-            HashMap<String, HashMap<String, Integer>> dispatchStrategy = dispatchBasedMaxBandSite(demandList);
+            //按照最大需求排序客户节点
+//            HashMap<String, HashMap<String, Integer>> dispatchStrategy = dispatchBasedMaxBandSite(demandList);
+
+            //按照最大需求排序客户节点，历史最大使用带宽排序边缘节点
+            HashMap<String, HashMap<String, Integer>> dispatchStrategy =
+                    dispatchBasedDemandClientAndUsedBandSite(demandList,siteWithMaxUsedBand);
+            System.out.println(dispatchStrategy);
+
 //        System.out.println("dispatchStrategy: " + dispatchStrategy);
             result.put(time, dispatchStrategy);
         }
-        System.out.println("result: " + result);
+//        System.out.println("result: " + result);
         return result;
     }
 
