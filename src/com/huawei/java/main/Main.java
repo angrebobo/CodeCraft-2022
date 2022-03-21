@@ -2,8 +2,6 @@ package com.huawei.java.main;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.ForkJoinPool;
-import java.util.stream.Collectors;
 
 /**
  * @Description 对客户的需求进行排序，先满足需求大的客户
@@ -232,9 +230,12 @@ public class Main {
     }
     
     /**
-     * @Description 具体的调度方法:对客户的需求进行排序，先满足需求大的客户
-     * 将客户节点能够连接的边缘节点列出来，按照能够提供的带宽大小排序，先放到能提供大带宽的边缘节点中
-     * @param: demandMap存储<用户节点名称，用户节点的带宽需求>
+     * @Description 对客户的需求进行排序，先满足需求大的客户
+     *  * 将客户节点能够连接的边缘节点列出来，按照边缘节点能够连接的客户节点数进行排序（从小到大）
+     *  * 例如当前时刻处理A客户节点，A可以连接到以下几个边缘节点(B,C,D)，B可以连接2个客户节点，C可以连接3个客户节点，D可以连接4个客户节点
+     *  * (B,2) < (C,3) < (D,4)
+     *  * 那么A客户节点分配给B边缘节点的流量要多一点，即B边缘节点的权重要高一点
+     *  * B的权重就是4份，C的权重就是3份，C的权重就是2份
      * @return  
      */
     public static HashMap<String, HashMap<String, Integer>> dispatchBasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap){
@@ -250,15 +251,19 @@ public class Main {
             //客户节点带宽需求
             int curDemand = entry.getValue();
 
-
             HashMap<String, Integer> siteMap = new HashMap<>( demandConnectSite.get(curClient) );
-            HashMap<String, Integer> siteBandWidthMap = new HashMap<>(siteMap);
-            List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteBandWidthMap.entrySet());
+            //temp用来防止siteList的排序操作影响到siteMap的数据
+            HashMap<String, Integer> temp = new HashMap<>(siteMap);
+            List<Map.Entry<String, Integer>> siteList = new ArrayList<>(temp.entrySet());
             //siteList原先存的是<边缘节点名称，该边缘节点名称能连接的客户节点数>，现在替换成<边缘节点名称，边缘节点剩余的带宽>
             siteList.forEach(o1 -> o1.setValue( site_bandwidth_copy.get(o1.getKey())) );
 
-            //计算边缘节点的权重
-
+            //对边缘节点的连接数进行排序，连接数越小的边缘节点，权重应该越高
+            List<Integer> conList = new ArrayList<>();
+            conList.addAll(siteMap.values());
+            Collections.sort(conList);
+            //数组求和
+            Integer sum = conList.stream().mapToInt(Integer::intValue).sum();
 
             HashMap<String, Integer> map = new HashMap<>();
             int count = 0;
@@ -266,6 +271,8 @@ public class Main {
             for(Map.Entry<String, Integer> site : siteList){
                 if(curDemand == 0)
                     break;
+
+                int connectNum = siteMap.get(site.getKey());
 
                 count++;
                 //resband表示当前site的剩余带宽
