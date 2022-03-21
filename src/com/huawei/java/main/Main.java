@@ -272,6 +272,10 @@ public class Main {
                     break;
 
                 int connectNum = siteMap.get(site.getKey());
+                int index = conList.indexOf(connectNum);
+                int w = conList.get(conList.size()-1-index);
+
+                int curDispatch
 
                 count++;
                 //resband表示当前site的剩余带宽
