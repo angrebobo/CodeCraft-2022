@@ -5,8 +5,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * @Description 对客户的需求进行排序，先满足需求大的客户
- * 将客户节点能够连接的边缘节点列出来，按照能够提供的带宽大小排序，先放到能提供大带宽的边缘节点中
+ * @Description 
  * @param
  * @return
  */
