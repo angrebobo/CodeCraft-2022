@@ -223,7 +223,7 @@ public class Main {
                     put("capacity", BigDecimal.valueOf(site_bandwidth.get(siteName)));
                     put("connect", BigDecimal.valueOf(siteMap.get(siteName)));
                 }};
-                weightSum = weightSum.add( temp.get("capacity").divide(temp.get("connect").multiply(BigDecimal.valueOf(100)), 5, RoundingMode.CEILING) );
+                weightSum = weightSum.add( temp.get("capacity").divide(temp.get("connect"), 5, RoundingMode.CEILING) );
                 weightMap.put(siteName, temp);
             }
 //            System.out.println("weightMap: " + weightMap);
@@ -242,7 +242,7 @@ public class Main {
                     continue;
 
                 //权重计算
-                BigDecimal numerator = weightMap.get(siteName).get("capacity").divide(weightMap.get(siteName).get("connect").multiply(BigDecimal.valueOf(100)), 5, RoundingMode.FLOOR);
+                BigDecimal numerator = weightMap.get(siteName).get("capacity").divide(weightMap.get(siteName).get("connect"), 5, RoundingMode.FLOOR);
                 BigDecimal weight = numerator.divide(weightSum, 5, RoundingMode.FLOOR);
                 Integer curDispatch = weight.multiply(BigDecimal.valueOf(curDemand)).setScale(0, BigDecimal.ROUND_DOWN).intValue();
 
