@@ -12,7 +12,7 @@ import java.util.List;
 public class Check {
 
     //检测客户节点的流量有没有全都分配出去
-    public static boolean check_1(HashMap<String, HashMap<String, Integer>> demand,
+    public static void check_1(HashMap<String, HashMap<String, Integer>> demand,
                                   List<String> demandName,
                                   List<String> timeList,
                                   List<String> siteName,
@@ -27,19 +27,18 @@ public class Check {
                 if(s != sum){
                     System.out.println("不合理");
                     System.out.println(time + "," + "客户:" + demandName.get(i) + "," +"边缘:" + siteName);
+                    System.out.println("客户需求为:" + sum);
                     System.out.println("分配的流量为：" + s);
                     System.out.println("分配方案： " + temp);
                     System.out.println();
                     System.out.println();
                     ans = false;
                 }
-                else {
-//                    System.out.println("时间："+time + ", " + "客户节点：" + demandName.get(i) + ", " + "的需求为 " + sum);
-//                    System.out.println("分配的流量为：" + s);
-//                    System.out.println("分配方案：" + values);
-                }
             }
         }
-        return ans;
+        if(ans){
+            System.out.println("客户节点的流量已经全都分配出去");
+        }
+        return ;
     }
 }

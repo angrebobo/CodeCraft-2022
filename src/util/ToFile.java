@@ -72,10 +72,8 @@ public class ToFile {
             for(String k : log.keySet()){
                 StringBuffer buffer = new StringBuffer();
                 buffer.append(k).append(": ").append("\r\n");
-                buffer.append("index: ").append(log.get(k).get("index")).append("\r\n");
-                buffer.append("w: ").append(log.get(k).get("w")).append("\r\n");
-                buffer.append("conList: ").append(log.get(k).get("conList")).append("\r\n");
                 buffer.append("weight: ").append(log.get(k).get("weight")).append("\r\n");
+                buffer.append("alreadyDispatch: ").append(log.get(k).get("alreadyDispatch")).append("\r\n");
                 buffer.append("second: ").append(log.get(k).get("second")).append("\r\n");
                 buffer.append("\r\n").append("\r\n");
                 bufferedWriter.write(buffer.toString());
