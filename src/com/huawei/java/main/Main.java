@@ -247,11 +247,11 @@ public class Main {
                 Integer curDispatch = weight.multiply(BigDecimal.valueOf(curDemand)).setScale(0, BigDecimal.ROUND_DOWN).intValue();
 
                 //日志，记录每次的权重分配，方便后续排查错误
-                String name = time + "," + "客户:" + curClient + "," +"边缘:" + siteName;
-                HashMap<String, String> value = new HashMap<>();
-                value.put("weight", String.valueOf(weight));
-                value.put("alreadyDispatch", String.valueOf(curDispatch));
-                log.put(name, value);
+//                String name = time + "," + "客户:" + curClient + "," +"边缘:" + siteName;
+//                HashMap<String, String> value = new HashMap<>();
+//                value.put("weight", String.valueOf(weight));
+//                value.put("alreadyDispatch", String.valueOf(curDispatch));
+//                log.put(name, value);
 
                 if(curDispatch > cruDemand_dynamic)
                     curDispatch = cruDemand_dynamic;
@@ -300,10 +300,10 @@ public class Main {
                     site_bandwidth_copy.put(siteName, resband);
 
                     //日志，记录每次的权重分配，方便后续排查错误
-                    String name = time + ", " + "客户：" + curClient + ", " +"边缘：" + siteName;
-                    HashMap<String, String> value = new HashMap<>();
-                    value.put("second" , "curDemand:" + curDemand +", alreadyDispatch:"+(site_bandwidth_copy.get(siteName)-resband)+"");
-                    log.put(name, value);
+//                    String name = time + ", " + "客户：" + curClient + ", " +"边缘：" + siteName;
+//                    HashMap<String, String> value = new HashMap<>();
+//                    value.put("second" , "curDemand:" + curDemand +", alreadyDispatch:"+(site_bandwidth_copy.get(siteName)-resband)+"");
+//                    log.put(name, value);
                 }
             }
 
