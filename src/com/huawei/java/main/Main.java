@@ -1,6 +1,6 @@
 package com.huawei.java.main;
 
-//import util.Check;
+import util.Check;
 import util.ToFile;
 
 import java.io.*;
@@ -39,20 +39,20 @@ public class Main {
     static HashMap<String, HashMap<String, String>> log = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
-        /*static String demandFile = "data/demand.csv";
+        static String demandFile = "data/demand.csv";
         static String site_bandwidthFile = "data/site_bandwidth.csv";
         static String qosFile = "data/qos.csv";
         static String qos_config = "data/config.ini";
         static String filepath = "output/solution.txt";
-        static String logPath = "output/log.txt";*/
+        static String logPath = "output/log.txt";
 
     // ！！！提交到线上用这个环境
-    static String demandFile = "/data/demand.csv";
+    /*static String demandFile = "/data/demand.csv";
     static String site_bandwidthFile = "/data/site_bandwidth.csv";
     static String qosFile = "/data/qos.csv";
     static String qos_config = "/data/config.ini";
     static String filepath = "/output/solution.txt";
-    static String logPath = "/output/log.txt";
+    static String logPath = "/output/log.txt";*/
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
@@ -343,6 +343,7 @@ public class Main {
 //        ToFile.writeLog(logPath, log);
 
         //校验
-//        Check.check_1(demand, demandName, timeList, siteName, result);
+        Check.check_1(demand, demandName, timeList, siteName, result);
+        Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
     }
 }
