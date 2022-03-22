@@ -4,6 +4,7 @@ import com.sun.org.apache.xpath.internal.functions.FuncUnparsedEntityURI;
 import util.Check;
 import util.ToFile;
 
+import java.beans.beancontext.BeanContext;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -323,31 +324,53 @@ public class Main {
      */
     public static HashMap<String, HashMap<String, HashMap<String, Integer>>> dispatch(){
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = new HashMap<>();
-        for (String time : timeList){
-            int day = timeList.size() - (int) Math.ceil( timeList.size() * 0.95 );
-            //每个边缘节点可以满负载的天数
-            HashMap<String, Integer> fullLoadDays = new HashMap<>();
-            HashMap<String, Integer> site_bandwidth_copy = new HashMap<>(site_bandwidth);
-            for (String site : siteName){
-                fullLoadDays.put(site, day);
+        HashMap<String, HashMap<String, Integer>> demand_copy = new HashMap<>(demand);
+        HashMap<String, Integer> site_bandwidth_copy = new HashMap<>(site_bandwidth);
+        HashMap<String, Integer> fullLoadDays = new HashMap<>();
+        //每个边缘节点可以满负载的天数
+        int day = timeList.size() - (int) Math.ceil( timeList.size() * 0.95 );
+        for (String site : siteName){
+            fullLoadDays.put(site, day);
+        }
 
+        for (String time : timeList){
+            //map存分配方案
+            HashMap<String, HashMap<String, Integer>> map = new HashMap<>();
+
+            for (String site : siteName){
                 //remainBandWidth记录边缘节点的剩余带宽
                 Integer remainBandWidth = site_bandwidth_copy.get(site);
                 //demandList存储当前site能连接的客户节点
                 List<String> demandList = new ArrayList<>(siteConnectDemand.get(site).keySet());
                 //demandNeed存储这个客户节点的带宽需求
-                HashMap<String, Integer> demandNeed = demand.get(time);
+                HashMap<String, Integer> demandNeed = demand_copy.get(time);
                 Integer needSum = demandNeed.values().stream().mapToInt(Integer::intValue).sum();
 
                 if(needSum <= remainBandWidth){
                     remainBandWidth -= needSum;
+
                 }
                 //满负载天数还有剩余
                 else if(fullLoadDays.get(site)>0) {
                     List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet()) ;
                     entryList = entryList.stream().filter(o1 -> demandList.contains(o1.getKey())).collect(Collectors.toList());
+                    //将客户节点按带宽需求从大到小排序
+                    entryList.sort(((o1,o2) -> o2.getValue()-o1.getValue()));
+                    for (Map.Entry<String, Integer> entry : entryList){
+                        if(remainBandWidth == 0)
+                            break;
 
+                        if(remainBandWidth > entry.getValue()){
+                            remainBandWidth -= entry.getValue();
+                            demand_copy.get(time).put(entry.getKey(), 0);
+                        }
+                        else {
+                            demand_copy.get(time).put(entry.getKey(), entry.getValue()-remainBandWidth);
+                            remainBandWidth = 0;
+                        }
+                    }
 
+                    fullLoadDays.put(site, fullLoadDays.get(site)-1);
                 }
 
 
