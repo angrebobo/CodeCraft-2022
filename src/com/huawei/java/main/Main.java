@@ -344,9 +344,10 @@ public class Main {
                 }
                 //满负载天数还有剩余
                 else if(fullLoadDays.get(site)>0) {
-                    Set<Map.Entry<String, Integer>> entrySet = demandNeed.entrySet();
-                    entrySet = entrySet.stream().filter(o1 -> demandList.contains(o1.getKey())).collect(Collectors.toSet());
-                    List<Map.Entry<String, Integer>> entryList = entrySet.stream().sorted().collect(Collectors.toList());
+                    List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet()) ;
+                    entryList = entryList.stream().filter(o1 -> demandList.contains(o1.getKey())).collect(Collectors.toList());
+
+
                 }
 
 
