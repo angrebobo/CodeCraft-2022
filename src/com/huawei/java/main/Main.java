@@ -2,6 +2,8 @@ package com.huawei.java.main;
 //import util.Check;
 
 
+import util.Check;
+
 import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,19 +36,19 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> qos_s = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
-//        static String demandFile = "pdata/demand.csv";
-//        static String site_bandwidthFile = "pdata/site_bandwidth.csv";
-//        static String qosFile = "pdata/qos.csv";
-//        static String qos_config = "pdata/config.ini";
-//        static String filepath = "output/solution.txt";
+        static String demandFile = "data/demand.csv";
+        static String site_bandwidthFile = "data/site_bandwidth.csv";
+        static String qosFile = "data/qos.csv";
+        static String qos_config = "data/config.ini";
+        static String filepath = "output/solution.txt";
 
 
     // ！！！提交到线上用这个环境
-    static String demandFile = "/data/demand.csv";
-    static String site_bandwidthFile = "/data/site_bandwidth.csv";
-    static String qosFile = "/data/qos.csv";
-    static String qos_config = "/data/config.ini";
-    static String filepath = "/output/solution.txt";
+//    static String demandFile = "/data/demand.csv";
+//    static String site_bandwidthFile = "/data/site_bandwidth.csv";
+//    static String qosFile = "/data/qos.csv";
+//    static String qos_config = "/data/config.ini";
+//    static String filepath = "/output/solution.txt";
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
@@ -394,8 +396,10 @@ public class Main {
                         curdemand-= dispatBand;
                         dispatBand = 0;
                     }
+
                     demandmap.put(curClient,curdemand);
                     dispatchStrategy.put(site,dispatchStrategy.get(site) + dispatBand_copy-dispatBand);
+                    dispatBand_copy = dispatBand;
                 }
             }
             for(Map.Entry<String, Integer> entry : demandmap.entrySet()){
@@ -488,9 +492,10 @@ public class Main {
             result = new HashMap<>();
             System.out.println(rate);
         }
-//        System.out.println(Check.check_1(demand, demandName, timeList, siteName, result));
+        System.out.println(Check.check_1(demand, demandName, timeList, siteName, result));
         writeToFile( result );
-//        System.out.println(rate);
+
+
 
 
     }
