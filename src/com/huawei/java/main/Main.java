@@ -1,5 +1,6 @@
 package com.huawei.java.main;
 
+import com.sun.org.apache.xpath.internal.functions.FuncUnparsedEntityURI;
 import util.Check;
 import util.ToFile;
 
@@ -7,6 +8,7 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @Description 对客户的需求进行排序，先满足需求大的客户
@@ -322,6 +324,42 @@ public class Main {
     public static HashMap<String, HashMap<String, HashMap<String, Integer>>> dispatch(){
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = new HashMap<>();
         for (String time : timeList){
+            int day = timeList.size() - (int) Math.ceil( timeList.size() * 0.95 );
+            //每个边缘节点可以满负载的天数
+            HashMap<String, Integer> fullLoadDays = new HashMap<>();
+            HashMap<String, Integer> site_bandwidth_copy = new HashMap<>(site_bandwidth);
+            for (String site : siteName){
+                fullLoadDays.put(site, day);
+
+                //remainBandWidth记录边缘节点的剩余带宽
+                Integer remainBandWidth = site_bandwidth_copy.get(site);
+                //demandList存储当前site能连接的客户节点
+                List<String> demandList = new ArrayList<>(siteConnectDemand.get(site).keySet());
+                //demandNeed存储这个客户节点的带宽需求
+                HashMap<String, Integer> demandNeed = demand.get(time);
+                Integer needSum = demandNeed.values().stream().mapToInt(Integer::intValue).sum();
+
+                if(needSum <= remainBandWidth){
+                    remainBandWidth -= needSum;
+                }
+                //满负载天数还有剩余
+                else if(fullLoadDays.get(site)>0) {
+                    Set<Map.Entry<String, Integer>> entrySet = demandNeed.entrySet();
+                    entrySet = entrySet.stream().filter(o1 -> demandList.contains(o1.getKey())).collect(Collectors.toSet());
+                    List<Map.Entry<String, Integer>> entryList = entrySet.stream().sorted().collect(Collectors.toList());
+                }
+
+
+
+
+            }
+
+
+
+
+
+
+
             //得到当前时刻，所有客户节点的需求流量
             HashMap<String, Integer> demandMap = demand.get(time);
             List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demandMap.entrySet());
