@@ -200,12 +200,12 @@ public class Main {
             }
             siteConnectDemandSum.put(time, map);
         }
-       for(String time : timeList){
-           System.out.println(time + ": ");
-           for (String s : siteName){
-               System.out.println(s + ": " + siteConnectDemandSum.get(time).get(s));
-           }
-       }
+//       for(String time : timeList){
+//           System.out.println(time + ": ");
+//           for (String s : siteName){
+//               System.out.println(s + ": " + siteConnectDemandSum.get(time).get(s));
+//           }
+//       }
     }
 
     /**
@@ -368,27 +368,33 @@ public class Main {
         for (String time : timeList) {
             //map存分配方案,注意格式是<边缘节点，<客户节点，分配的流量>>
             HashMap<String, HashMap<String, Integer>> map = new HashMap<>();
+            HashMap<String, Integer> needMap = siteConnectDemandSum.get(time);
+            //根据连接的客户节点的流量总和大小来排序
+            List<Map.Entry<String, Integer>> entryList1 = new ArrayList<>(needMap.entrySet());
+            entryList1.sort((o1, o2) -> o2.getValue()-o1.getValue());
 
-            for (String site : siteName) {
+            for(Map.Entry<String, Integer> sortedEntry : entryList1){
+                String site = sortedEntry.getKey();
+                //needSum表示所有客户节点的需求总和
+                Integer needSum = sortedEntry.getValue();
+
                 //remainBandWidth记录边缘节点的剩余带宽
                 Integer remainBandWidth = timeSiteBandWidth.get(time).get(site);
                 //demandNeed存储能连接的客户节点的带宽需求
-                HashMap<String, Integer> demandNeed = Check.MyClone(demand_copy.get(time));
+                HashMap<String, Integer> demandNeed = siteConnectDemand.getOrDefault(site, null);
                 //该边缘节点是个死节点，连接不到任何客户节点
-                if(siteConnectDemand.getOrDefault(site, null) == null){
+                if(demandNeed == null){
                     continue;
                 }
-                for(String demand : demandName){
-                    if(!siteConnectDemand.get(site).containsKey(demand))
-                        demandNeed.remove(demand);
+                //更新value值
+                for(String key : demandNeed.keySet()){
+                    demandNeed.put(key, demand_copy.get(time).get(key));
                 }
-                //needSum表示所有客户节点的需求总和
-                Integer needSum = demandNeed.values().stream().mapToInt(Integer::intValue).sum();
                 //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
                 HashMap<String, Integer> hashMap = new HashMap<>();
 
                 //边缘节点在当前能满负载 并且 满负载天数还有剩余
-                if (needSum >= remainBandWidth && fullLoadDays.get(site) > 0) {
+                if (/*needSum >= remainBandWidth && */fullLoadDays.get(site) > 0) {
                     List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet());
                     //将客户节点按带宽需求从大到小排序
                     entryList.sort(((o1, o2) -> o2.getValue() - o1.getValue()));
