@@ -2,6 +2,8 @@ package com.huawei.java.main;
 //import util.Check;
 
 
+
+
 import util.Check;
 
 import java.io.*;
@@ -36,11 +38,11 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> qos_s = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
-        static String demandFile = "data/demand.csv";
-        static String site_bandwidthFile = "data/site_bandwidth.csv";
-        static String qosFile = "data/qos.csv";
-        static String qos_config = "data/config.ini";
-        static String filepath = "output/solution.txt";
+        static String demandFile = "pdata/demand.csv";
+        static String site_bandwidthFile = "pdata/site_bandwidth.csv";
+        static String qosFile = "pdata/qos.csv";
+        static String qos_config = "pdata/config.ini";
+        static String filepath = "poutput/solution.txt";
 
 
     // ！！！提交到线上用这个环境
@@ -188,6 +190,7 @@ public class Main {
 
         //复制一份 节点-剩余容量 map,因为每个时间节点开始都是满的，所以每次都直接复制最大值*rate。
         HashMap<String, Integer> site_bandwidth_copy = new HashMap<>(siteWithMaxUseableBand);
+//        System.out.println(site_bandwidth_copy);
 
         for (Map.Entry<String, Integer> entry : demandlist){
             //客户节点名称
@@ -199,20 +202,14 @@ public class Main {
             List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteMap.entrySet());
             //过滤出小于qos_config的边缘节点
             siteList = siteList.stream().filter( o1 -> o1.getValue()<qos_constraint ).collect(Collectors.toList());
-
-// 对site根据历史最大使用情况进行排序
-//            siteList.sort((o1,o2) -> o2.getValue()-o1.getValue());
             HashMap<String, Integer> map = new HashMap<>();
 
             for(Map.Entry<String, Integer> site : siteList){
                 if(curDemand == 0)
                     break;
-
                 //resband表示当前site的剩余带宽
                 int resband = site_bandwidth_copy.get(site.getKey());
                 int beforResband = resband;
-
-
                 //当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
                 if(resband >= curDemand){
                     resband -= curDemand;
@@ -231,14 +228,15 @@ public class Main {
                     map.put(site.getKey(), map.getOrDefault(site.getKey(),0) + beforResband - resband);
                 }
 
-//                System.out.println("map: " + map);
-
             }
-            if(curDemand!=0){
+            if(curDemand>0){
                 sign = false;
-                entry.setValue(curDemand);
             }
+
+            entry.setValue(curDemand);
+
             dispatchStrategy.put(curClient, map);
+
             //site_bandwidth_copy记录了节点的带宽剩余情况
         }
 
@@ -321,26 +319,25 @@ public class Main {
      * @return
      */
     public static boolean dispatch(
-            double rate,HashMap<String,
-            HashMap<String, HashMap<String, Integer>>> result){
+            double rate,
+            HashMap<String,HashMap<String, HashMap<String, Integer>>> result){
         //定义一个信号，如果分配过程有溢出，变成false
         boolean sign = true;
 //      记录每个节点历史最大可使用带宽
         HashMap<String, Integer> siteWithMaxUseableBand = new HashMap<>();
-//      初始化,所有使用情况都为
+//      初始化,第一波分配只分配 限定范围内的带宽。
         for(String site : siteName) siteWithMaxUseableBand.put(site,(int)(site_bandwidth.get(site)*rate));
+
 
         HashMap<String, List<Map.Entry<String, Integer>>> alldemandList = new HashMap<>();
         for (String time : timeList){
             //得到当前时刻，所有客户节点的需求流量
             HashMap<String, Integer> demandMap = demand.get(time);
-            List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demandMap.entrySet());
-//            //按需求流量的大小进行排序，排序方式为从大到小
-//            demandList.sort((o1,o2) -> o2.getValue()-o1.getValue());
-//        System.out.println(demandList);
-            //按照最大需求排序客户节点
-//            HashMap<String, HashMap<String, Integer>> dispatchStrategy = dispatchBasedMaxBandSite(demandList);
-
+            //需求转为list用于遍历
+            HashMap<String, Integer> demandMap_copy = new HashMap<>();
+            for(Map.Entry<String, Integer> entry:demandMap.entrySet()) demandMap_copy.put(entry.getKey(),entry.getValue());
+            List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demandMap_copy.entrySet());
+            //分配策略
             HashMap<String, HashMap<String, Integer>> dispatchStrategy = new HashMap<>();
             if(!dispatchBasedDemandClientAndUsedBandSite(demandList,siteWithMaxUseableBand,dispatchStrategy)){
                 sign = false;
@@ -352,6 +349,7 @@ public class Main {
         if(sign==false){
             int times =(int) (timeList.size()*0.04);
             sign = secondDispat(alldemandList,result,times,rate);
+
         }
         return sign;
     }
@@ -367,6 +365,7 @@ public class Main {
         for (String time : timeList){
             //得到当前时刻，所有客户节点的剩余需求流量
             List<Map.Entry<String, Integer>> demandList = alldemandList.get(time);
+            System.out.println(demandList);
             Map<String,Integer> demandmap = new HashMap<>();
             for(Map.Entry<String, Integer> entry : demandList) demandmap.put(entry.getKey(), entry.getValue());
 
@@ -378,7 +377,7 @@ public class Main {
                 HashMap<String, Integer> clientMap = new HashMap<>( qos_d.get(site));
                 List<Map.Entry<String, Integer>> clientList = new ArrayList<>(clientMap.entrySet());
                 clientList = clientList.stream().filter( o1 -> o1.getValue()<qos_constraint ).collect(Collectors.toList());
-
+//                clientList.sort((o1,o2) -> demandmap.getOrDefault(o2,0)-demandmap.getOrDefault(o1,0));
                 int dispatBand = site_bandwidth.get(site) - (int)(site_bandwidth.get(site)*rate);
                 int dispatBand_copy = dispatBand;
                 for(Map.Entry<String, Integer> cilent:clientList){
@@ -492,11 +491,12 @@ public class Main {
             result = new HashMap<>();
             System.out.println(rate);
         }
-        System.out.println(Check.check_1(demand, demandName, timeList, siteName, result));
+
         writeToFile( result );
+//        System.out.println(result);
+//        Check.check_1(demand, demandName, timeList, siteName, result);
+        Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
 
-
-
-
+//        System.out.println(result);
     }
 }
