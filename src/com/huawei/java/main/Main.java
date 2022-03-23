@@ -1,11 +1,11 @@
 package com.huawei.java.main;
 
-import com.sun.org.apache.xpath.internal.functions.FuncUnparsedEntityURI;
 import util.Check;
 import util.ToFile;
 
-import java.beans.beancontext.BeanContext;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -333,60 +333,55 @@ public class Main {
             fullLoadDays.put(site, day);
         }
 
-        for (String time : timeList){
-            //map存分配方案
+        for (String time : timeList) {
+            //map存分配方案,注意格式是<边缘节点，<客户节点，分配的流量>>
             HashMap<String, HashMap<String, Integer>> map = new HashMap<>();
 
-            for (String site : siteName){
+            for (String site : siteName) {
                 //remainBandWidth记录边缘节点的剩余带宽
                 Integer remainBandWidth = site_bandwidth_copy.get(site);
                 //demandList存储当前site能连接的客户节点
                 List<String> demandList = new ArrayList<>(siteConnectDemand.get(site).keySet());
                 //demandNeed存储这个客户节点的带宽需求
                 HashMap<String, Integer> demandNeed = demand_copy.get(time);
+                //needSum表示所有客户节点的需求总和
                 Integer needSum = demandNeed.values().stream().mapToInt(Integer::intValue).sum();
+                //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
+                HashMap<String, Integer> hashMap = new HashMap<>();
 
-                if(needSum <= remainBandWidth){
-                    remainBandWidth -= needSum;
-
-                }
-                //满负载天数还有剩余
-                else if(fullLoadDays.get(site)>0) {
-                    List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet()) ;
+                //边缘节点在当前能满负载 并且 满负载天数还有剩余
+                if (needSum >= remainBandWidth && fullLoadDays.get(site) > 0) {
+                    List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet());
                     entryList = entryList.stream().filter(o1 -> demandList.contains(o1.getKey())).collect(Collectors.toList());
                     //将客户节点按带宽需求从大到小排序
-                    entryList.sort(((o1,o2) -> o2.getValue()-o1.getValue()));
-                    for (Map.Entry<String, Integer> entry : entryList){
-                        if(remainBandWidth == 0)
+                    entryList.sort(((o1, o2) -> o2.getValue() - o1.getValue()));
+                    for (Map.Entry<String, Integer> entry : entryList) {
+                        if (remainBandWidth == 0)
                             break;
 
-                        if(remainBandWidth > entry.getValue()){
+                        if (remainBandWidth > entry.getValue()) {
                             remainBandWidth -= entry.getValue();
+                            //更新客户节点的流量需求
                             demand_copy.get(time).put(entry.getKey(), 0);
-                        }
-                        else {
-                            demand_copy.get(time).put(entry.getKey(), entry.getValue()-remainBandWidth);
+                            hashMap.put(entry.getKey(), entry.getValue());
+                        } else {
                             remainBandWidth = 0;
+                            demand_copy.get(time).put(entry.getKey(), entry.getValue() - remainBandWidth);
+                            hashMap.put(entry.getKey(), remainBandWidth);
                         }
                     }
-
-                    fullLoadDays.put(site, fullLoadDays.get(site)-1);
+                    //更新边缘节点的带宽
+                    site_bandwidth_copy.put(site, remainBandWidth);
+                    //更新满负载的天数
+                    fullLoadDays.put(site, fullLoadDays.get(site) - 1);
                 }
-
-
-
-
+                map.put(time, hashMap);
             }
+        }
 
-
-
-
-
-
-
+        for (String time : timeList){
             //得到当前时刻，所有客户节点的需求流量
-            HashMap<String, Integer> demandMap = demand.get(time);
-            List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demandMap.entrySet());
+            List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demand_copy.get(time).entrySet());
             //按需求流量的大小进行排序，排序方式为从大到小
             demandList.sort((o1,o2) -> o2.getValue()-o1.getValue());
 //        System.out.println(demandList);
