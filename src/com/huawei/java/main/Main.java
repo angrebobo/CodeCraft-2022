@@ -39,22 +39,24 @@ public class Main {
     //siteConnectDemand存储边缘节点能连接到的客户节点，格式为<边缘节点名称，<客户节点名称，该客户节点名称能连接的边缘节点数>>
     static HashMap<String, HashMap<String, Integer>> siteConnectDemand = new HashMap<>();
     static HashMap<String, HashMap<String, String>> log = new HashMap<>();
+    //siteConnectDemandSum存储边缘节点能连接到的客户节点，格式为<时刻，<边缘节点名称，连接的客户节点的流量总和>>
+    static HashMap<String, HashMap<String, Integer>> siteConnectDemandSum = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
-        /*static String demandFile = "data/demand.csv";
+        static String demandFile = "data/demand.csv";
         static String site_bandwidthFile = "data/site_bandwidth.csv";
         static String qosFile = "data/qos.csv";
         static String qos_config = "data/config.ini";
         static String filepath = "output/solution.txt";
-        static String logPath = "output/log.txt";*/
+        static String logPath = "output/log.txt";
 
     // ！！！提交到线上用这个环境
-    static String demandFile = "/data/demand.csv";
+    /*static String demandFile = "/data/demand.csv";
     static String site_bandwidthFile = "/data/site_bandwidth.csv";
     static String qosFile = "/data/qos.csv";
     static String qos_config = "/data/config.ini";
     static String filepath = "/output/solution.txt";
-    static String logPath = "/output/log.txt";
+    static String logPath = "/output/log.txt";*/
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
@@ -182,6 +184,28 @@ public class Main {
         }
 //        System.out.println("siteConnectDemand: " + siteConnectDemand);
 //        System.out.println("demandConnectSite: " + demandConnectSite);
+
+        for (String time : timeList){
+            HashMap<String, Integer> map = new HashMap<>();
+            for(String site : siteName){
+                HashMap<String, Integer> temp1 = siteConnectDemand.getOrDefault(site , null);
+                if(temp1 != null){
+                    List<Integer> values = new ArrayList<>();
+                    for (Map.Entry<String, Integer> entry : temp1.entrySet()){
+                        values.add( demand.get(time).get(entry.getKey()) );
+                    }
+                    Integer sum = values.stream().mapToInt(Integer::intValue).sum();
+                    map.put(site, sum);
+                }
+            }
+            siteConnectDemandSum.put(time, map);
+        }
+       for(String time : timeList){
+           System.out.println(time + ": ");
+           for (String s : siteName){
+               System.out.println(s + ": " + siteConnectDemandSum.get(time).get(s));
+           }
+       }
     }
 
     /**
@@ -393,11 +417,11 @@ public class Main {
             }
             result1.put(time, map);
         }
-//        for(String time : timeList){
-//            System.out.println(time + ":");
-//            System.out.println(result1.get(time));
-//            System.out.println();
-//        }
+        for(String time : timeList){
+            System.out.println(time + ":");
+            System.out.println(result1.get(time));
+            System.out.println();
+        }
 
         //第二轮分配的分配方案,格式是<时间, <客户节点，<边缘节点，分配的流量>>>
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result2 = new HashMap<>();
@@ -414,14 +438,31 @@ public class Main {
         return ToFile.trans(result1, result2, siteName, demandName, timeList);
     }
 
+
+    public static void test(){
+        HashMap<String, HashMap<String, Integer>> siteConnectDemand1 = Check.MyClone(siteConnectDemand);
+        for (String time : timeList){
+            for(String site : siteName){
+                HashMap<String, Integer> temp = siteConnectDemand1.getOrDefault(site , null);
+                if(temp != null){
+                    Set<Map.Entry<String, Integer>> entrySet = temp.entrySet();
+                    entrySet.forEach(o1 -> o1.setValue(demand.get(time).get(o1.getKey())));
+                    Integer sum = temp.values().stream().mapToInt(Integer::intValue).sum();
+                    System.out.println("时刻：" +time+ "边缘节点：" +site + "连接的客户节点的需求和为 " +sum);
+                }
+            }
+        }
+    }
+
     public static void main(String[] args) {
         init();
+//        test();
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = dispatch();
         ToFile.writeToFile(filepath,timeList,demandName,result);
 //        ToFile.writeLog(logPath, log);
 
         //校验
-//        Check.check_1(demand, demandName, timeList, siteName, result);
-//        Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
+        Check.check_1(demand, demandName, timeList, siteName, result);
+        Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
     }
 }
