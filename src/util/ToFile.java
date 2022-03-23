@@ -83,4 +83,31 @@ public class ToFile {
         }
     }
 
+    public static HashMap<String, HashMap<String, HashMap<String, Integer>>> trans(
+            HashMap<String, HashMap<String, HashMap<String, Integer>>> result1,
+            HashMap<String, HashMap<String, HashMap<String, Integer>>> result2,
+            List<String> siteName,
+            List<String> demandName,
+            List<String> timeList){
+
+        HashMap<String, HashMap<String, HashMap<String, Integer>>> result = new HashMap<>(result2);
+
+        for (String demand : demandName){
+            for (String time : timeList){
+                for (String site : siteName){
+                    //该边缘节点是个死节点，连接不到任何客户节点
+                    if(result1.get(time).getOrDefault(site, null) == null)
+                        continue;
+                    if(result1.get(time).get(site).containsKey(demand)){
+                        HashMap<String, Integer> temp = result2.get(time).getOrDefault(demand, new HashMap<>());
+                        temp.put(site, result1.get(time).get(site).get(demand));
+
+                        result2.get(time).put(demand, temp);
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
 }

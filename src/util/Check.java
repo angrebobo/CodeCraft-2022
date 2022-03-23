@@ -1,5 +1,6 @@
 package util;
 
+import java.io.*;
 import java.util.*;
 
 /**
@@ -97,4 +98,22 @@ public class Check {
         System.out.println("所有边缘节点在95%位置的总带宽" + bindWidthSum);
     }
 
+    //能够实现深拷贝
+    public static <T extends Serializable> T MyClone(T object) {
+        T result = null;
+        try {
+            ByteArrayOutputStream temp1 = new ByteArrayOutputStream();
+            ObjectOutputStream temp2 = new ObjectOutputStream(temp1);
+            temp2.writeObject(object);
+            temp2.close();
+
+            ByteArrayInputStream temp3 = new ByteArrayInputStream(temp1.toByteArray());
+            ObjectInputStream temp4 = new ObjectInputStream(temp3);
+            result = (T) temp4.readObject();
+            temp4.close();
+        } catch (Exception e) {
+            System.out.println("clone object fail");
+        }
+        return result;
+    }
 }
