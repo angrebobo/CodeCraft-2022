@@ -217,8 +217,6 @@ public class Main {
 
         //第一轮分配方案
         for (String time : timeList) {
-            if("2021-11-01T04:10".equals(time))
-                System.out.println("注意注意注意注意");
             HashMap<String, Integer> needMap = siteConnectDemandSum.get(time);
             //根据连接的客户节点的流量总和大小来排序
             List<Map.Entry<String, Integer>> entryList1 = new ArrayList<>(needMap.entrySet());
@@ -232,8 +230,10 @@ public class Main {
                     break;
 
                 String site = sortedEntry.getKey();
+                //该节点没有高负载的次数了
                 if(fullLoadDays.get(site) <= 0)
                     continue;
+
                 //needSum表示所有客户节点的需求总和
                 Integer needSum = sortedEntry.getValue();
                 //remainBandWidth记录边缘节点的剩余带宽
@@ -248,9 +248,7 @@ public class Main {
                 demandNeed.replaceAll((k, v) -> demand_copy.get(time).get(k));
 
                 //边缘节点在当前能满负载 并且 满负载天数还有剩余
-//                if (remainBandWidth >= needSum && fullLoadDays.get(site) > 0 && ++count<=countLimit) {
-//                if (needSum >= remainBandWidth && ++count<=countLimit && fullLoadDays.get(site) > 0) {
-                if (needSum>=remainBandWidth*0.5) {
+                if (needSum >=25000/*remainBandWidth*0.5*/) {
                     //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
                     HashMap<String, Integer> hashMap = new HashMap<>();
                     List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet());
