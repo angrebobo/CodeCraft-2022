@@ -12,7 +12,7 @@ import java.util.*;
 
 /**
  * @Description 基于version5的版本，对第二次分配做优化
- * 采用两次分配的方案，第一次分配卡95%，第二次分配使得分配结果越平均越好
+ * 采用两次分配的方案，第一次分配卡95%，第二次分配增加服务器的上下限使用率
  * @param
  * @return
  */
@@ -197,12 +197,120 @@ public class Main {
         Arrays.stream(array).forEach(temp::add);
         return temp;
     }
-    
+
+    /**
+     * @Description 第一轮分配方案
+     * @param
+     * @return
+     */
+    public static HashMap<String, HashMap<String, HashMap<String, Integer>>> dispatchFirst(
+            HashMap<String, HashMap<String, Integer>> timeSiteBandWidth,
+            HashMap<String, HashMap<String, Integer>> demand_copy){
+
+        HashMap<String, HashMap<String, HashMap<String, Integer>>> result = new HashMap<>();
+        //每个边缘节点可以满负载的天数
+        HashMap<String, Integer> fullLoadDays = new HashMap<>();
+        int day = (int)(timeList.size() * 0.05);
+        for (String site : siteName){
+            fullLoadDays.put(site, day);
+        }
+        //每轮时间，最多有countLimit个边缘节点达到高负载
+        Integer countLimit = (int)(siteName.size() * 0.05);
+
+        //第一轮分配方案
+        for (String time : timeList) {
+            HashMap<String, Integer> needMap = siteConnectDemandSum.get(time);
+            //根据连接的客户节点的流量总和大小来排序
+            List<Map.Entry<String, Integer>> entryList1 = new ArrayList<>(needMap.entrySet());
+            entryList1.sort((o1, o2) -> o2.getValue()-o1.getValue());
+            //map存分配方案,注意格式是<边缘节点，<客户节点，分配的流量>>
+            HashMap<String, HashMap<String, Integer>> map = new HashMap<>();
+            int count = 0;
+
+            for(Map.Entry<String, Integer> sortedEntry : entryList1){
+                String site = sortedEntry.getKey();
+                //needSum表示所有客户节点的需求总和
+                Integer needSum = sortedEntry.getValue();
+                //remainBandWidth记录边缘节点的剩余带宽
+                Integer remainBandWidth = timeSiteBandWidth.get(time).get(site);
+                //demandNeed存储能连接的客户节点的带宽需求
+                HashMap<String, Integer> demandNeed = Check.MyClone(siteConnectDemand.getOrDefault(site, null));
+                //该边缘节点是个死节点，连接不到任何客户节点
+                if(demandNeed == null){
+                    continue;
+                }
+                //更新客户节点的流量需求
+                demandNeed.replaceAll((k, v) -> demand_copy.get(time).get(k));
+
+                //边缘节点在当前能满负载 并且 满负载天数还有剩余
+//                if (remainBandWidth >= needSum && fullLoadDays.get(site) > 0 && ++count<=countLimit) {
+                if (needSum >= remainBandWidth && fullLoadDays.get(site) > 0 && ++count<=countLimit) {
+                    //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
+                    HashMap<String, Integer> hashMap = new HashMap<>();
+                    List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet());
+                    //将客户节点按带宽需求从大到小排序
+                    entryList.sort(((o1, o2) -> o2.getValue() - o1.getValue()));
+                    for (Map.Entry<String, Integer> entry : entryList) {
+                        if (remainBandWidth == 0)
+                            break;
+                        if(entry.getValue() == 0)
+                            continue;
+
+                        //将该客户节点的流量都分配给该边缘节点
+                        if (remainBandWidth > entry.getValue()) {
+                            remainBandWidth -= entry.getValue();
+                            //更新客户节点的流量需求
+                            demand_copy.get(time).put(entry.getKey(), 0);
+                            hashMap.put(entry.getKey(), entry.getValue());
+                        } else {
+                            demand_copy.get(time).put(entry.getKey(), entry.getValue() - remainBandWidth);
+                            hashMap.put(entry.getKey(), remainBandWidth);
+                            remainBandWidth = 0;
+                        }
+                    }
+                    //更新边缘节点的带宽
+                    timeSiteBandWidth.get(time).put(site, remainBandWidth);
+                    //更新满负载的天数
+                    fullLoadDays.put(site, fullLoadDays.get(site) - 1);
+                    map.put(site, hashMap);
+                }
+            }
+            result.put(time, map);
+            /*for (String time1 : timeList){
+                System.out.println(time1);
+                System.out.println(result1.get(time1));
+                System.out.println();
+            }*/
+        }
+        return result;
+    }
+
+    /**
+     * @Description 第二轮分配方案
+     * @param
+     * @return
+     */
+    public static HashMap<String, HashMap<String, HashMap<String, Integer>>> dispatchSecond(
+            HashMap<String, HashMap<String, Integer>> timeSiteBandWidth,
+            HashMap<String, HashMap<String, Integer>> demand_copy){
+        HashMap<String, HashMap<String, HashMap<String, Integer>>> result = new HashMap<>();
+
+        for (String time : timeList){
+            //得到当前时刻，所有客户节点的需求流量
+            List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demand_copy.get(time).entrySet());
+            //按需求流量的大小进行排序，排序方式为从大到小
+            demandList.sort((o1,o2) -> o2.getValue()-o1.getValue());
+            HashMap<String, HashMap<String, Integer>> dispatchStrategy = dispatchBasedMaxBandSite(demandList, time, timeSiteBandWidth);
+            result.put(time, dispatchStrategy);
+        }
+        return result;
+    }
+
     /**
      * @Description 对客户的需求进行排序，先满足需求大的客户
      * 将客户节点能够连接的边缘节点列出来，按照边缘节点的容量和连接数作为权重分配的因素
      * 权重公式为(容量/连接数)
-     * @return  
+     * @return
      */
     public static HashMap<String, HashMap<String, Integer>> dispatchBasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap, String time, HashMap<String, HashMap<String, Integer>> timeSiteBandWidth){
         //dispatchStrategy存储最终的分配方案
@@ -325,99 +433,19 @@ public class Main {
      * @return
      */
     public static HashMap<String, HashMap<String, HashMap<String, Integer>>> dispatch(){
-        //第一轮分配的分配方案，格式是<时间, <边缘节点，<客户节点，分配的流量>>>
-        HashMap<String, HashMap<String, HashMap<String, Integer>>> result1 = new HashMap<>();
+        //每个时刻客户节点的带宽需求
         HashMap<String, HashMap<String, Integer>> demand_copy = Check.MyClone(demand);
         //记录每个时刻，边缘节点剩余的带宽
         HashMap<String, HashMap<String, Integer>> timeSiteBandWidth = new HashMap<>();
+        //初始化
         for(String time : timeList){
             timeSiteBandWidth.put(time, Check.MyClone(site_bandwidth));
         }
-        //每个边缘节点可以满负载的天数
-        HashMap<String, Integer> fullLoadDays = new HashMap<>();
-        int day = (int)(timeList.size() * 0.05);
-        for (String site : siteName){
-            fullLoadDays.put(site, day);
-        }
-        //每轮时间，最多有countLimit个边缘节点达到高负载
-        Integer countLimit = (int)(siteName.size() * 0.05);
 
-        //第一轮分配方案
-        for (String time : timeList) {
-            HashMap<String, Integer> needMap = siteConnectDemandSum.get(time);
-            //根据连接的客户节点的流量总和大小来排序
-            List<Map.Entry<String, Integer>> entryList1 = new ArrayList<>(needMap.entrySet());
-            entryList1.sort((o1, o2) -> o2.getValue()-o1.getValue());
-            //map存分配方案,注意格式是<边缘节点，<客户节点，分配的流量>>
-            HashMap<String, HashMap<String, Integer>> map = new HashMap<>();
-            int count = 0;
-
-            for(Map.Entry<String, Integer> sortedEntry : entryList1){
-                String site = sortedEntry.getKey();
-                //needSum表示所有客户节点的需求总和
-                Integer needSum = sortedEntry.getValue();
-                //remainBandWidth记录边缘节点的剩余带宽
-                Integer remainBandWidth = timeSiteBandWidth.get(time).get(site);
-                //demandNeed存储能连接的客户节点的带宽需求
-                HashMap<String, Integer> demandNeed = Check.MyClone(siteConnectDemand.getOrDefault(site, null));
-                //该边缘节点是个死节点，连接不到任何客户节点
-                if(demandNeed == null){
-                    continue;
-                }
-                //更新客户节点的流量需求
-                demandNeed.replaceAll((k, v) -> demand_copy.get(time).get(k));
-
-                //边缘节点在当前能满负载 并且 满负载天数还有剩余
-//                if (remainBandWidth >= needSum && fullLoadDays.get(site) > 0 && ++count<=countLimit) {
-                if (needSum >= remainBandWidth && fullLoadDays.get(site) > 0 && ++count<=countLimit) {
-                    //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
-                    HashMap<String, Integer> hashMap = new HashMap<>();
-                    List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet());
-                    //将客户节点按带宽需求从大到小排序
-                    entryList.sort(((o1, o2) -> o2.getValue() - o1.getValue()));
-                    for (Map.Entry<String, Integer> entry : entryList) {
-                        if (remainBandWidth == 0)
-                            break;
-                        if(entry.getValue() == 0)
-                            continue;
-
-                        //将该客户节点的流量都分配给该边缘节点
-                        if (remainBandWidth > entry.getValue()) {
-                            remainBandWidth -= entry.getValue();
-                            //更新客户节点的流量需求
-                            demand_copy.get(time).put(entry.getKey(), 0);
-                            hashMap.put(entry.getKey(), entry.getValue());
-                        } else {
-                            demand_copy.get(time).put(entry.getKey(), entry.getValue() - remainBandWidth);
-                            hashMap.put(entry.getKey(), remainBandWidth);
-                            remainBandWidth = 0;
-                        }
-                    }
-                    //更新边缘节点的带宽
-                    timeSiteBandWidth.get(time).put(site, remainBandWidth);
-                    //更新满负载的天数
-                    fullLoadDays.put(site, fullLoadDays.get(site) - 1);
-                    map.put(site, hashMap);
-                }
-            }
-            result1.put(time, map);
-            /*for (String time1 : timeList){
-                System.out.println(time1);
-                System.out.println(result1.get(time1));
-                System.out.println();
-            }*/
-        }
-
+        //第一轮分配的分配方案，格式是<时间, <边缘节点，<客户节点，分配的流量>>>
+        HashMap<String, HashMap<String, HashMap<String, Integer>>> result1 = dispatchFirst(timeSiteBandWidth, demand_copy);
         //第二轮分配的分配方案,格式是<时间, <客户节点，<边缘节点，分配的流量>>>
-        HashMap<String, HashMap<String, HashMap<String, Integer>>> result2 = new HashMap<>();
-        for (String time : timeList){
-            //得到当前时刻，所有客户节点的需求流量
-            List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demand_copy.get(time).entrySet());
-            //按需求流量的大小进行排序，排序方式为从大到小
-            demandList.sort((o1,o2) -> o2.getValue()-o1.getValue());
-            HashMap<String, HashMap<String, Integer>> dispatchStrategy = dispatchBasedMaxBandSite(demandList, time, timeSiteBandWidth);
-            result2.put(time, dispatchStrategy);
-        }
+        HashMap<String, HashMap<String, HashMap<String, Integer>>> result2 = dispatchSecond(timeSiteBandWidth, demand_copy);
 
         //因为result1和result2的格式不同，要统一转化为result2的那种格式
         return ToFile.trans(result1, result2, siteName, demandName, timeList);
@@ -426,10 +454,10 @@ public class Main {
     public static void main(String[] args) {
         init();
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = dispatch();
-        ToFile.writeToFile(filepath,timeList,demandName,result);
+        ToFile.writeToFile(filepath, timeList, demandName, result);
 //        ToFile.writeLog(logPath, log);
 
-        //校验
+        //对最终的分配方案做校验
         Check.check_1(demand, demandName, timeList, siteName, result);
         Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
     }
