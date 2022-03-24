@@ -11,7 +11,8 @@ import java.math.RoundingMode;
 import java.util.*;
 
 /**
- * @Description 采用两次分配的方案，第一次分配卡95%，第二次分配使得分配结果越平均越好
+ * @Description 基于version5的版本，对第二次分配做优化
+ * 采用两次分配的方案，第一次分配卡95%，第二次分配使得分配结果越平均越好
  * @param
  * @return
  */
