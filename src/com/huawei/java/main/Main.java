@@ -36,9 +36,10 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> demandConnectSite = new HashMap<>();
     //siteConnectDemand存储边缘节点能连接到的客户节点，格式为<边缘节点名称，<客户节点名称，该客户节点名称能连接的边缘节点数>>
     static HashMap<String, HashMap<String, Integer>> siteConnectDemand = new HashMap<>();
-    static HashMap<String, HashMap<String, String>> log = new HashMap<>();
     //siteConnectDemandSum存储边缘节点能连接到的客户节点，格式为<时刻，<边缘节点名称，连接的客户节点的流量总和>>
     static HashMap<String, HashMap<String, Integer>> siteConnectDemandSum = new HashMap<>();
+    //存储日志
+    static HashMap<String, HashMap<String, String>> log = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
         static String demandFile = "data/demand.csv";
@@ -525,7 +526,6 @@ public class Main {
         for(String site : siteName){
             fullLoadDays.put(site, day);
         }
-
 
         //第一轮分配的分配方案，格式是<时间, <边缘节点，<客户节点，分配的流量>>>
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result1 = dispatchFirst(timeSiteBandWidth, demand_copy, fullLoadTime, fullLoadDays);
