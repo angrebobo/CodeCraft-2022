@@ -319,7 +319,7 @@ public class Main {
                 demandNeed.replaceAll((k, v) -> demand_copy.get(time).get(k));
 
                 //边缘节点在当前能满负载 并且 满负载天数还有剩余
-                if (needSum >=25000/*remainBandWidth*0.5*/) {
+                if (needSum >=remainBandWidth*0.5) {
                     //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
                     HashMap<String, Integer> hashMap = new HashMap<>();
                     List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet());
