@@ -359,7 +359,6 @@ public class Main {
                     count++;
                 }
             }
-            update_siteConnectDemandSum(demand_copy);
             result.put(time, map);
         }
         /*for (String time : timeList){
