@@ -184,8 +184,8 @@ public class Main {
                         }
                     }
                     siteConnectDemand.put(siteName, map);
+                    break;
                 }
-                break;
             }
         }
 
@@ -199,8 +199,8 @@ public class Main {
                         }
                     }
                     demandConnectSite.put(demandName, map);
+                    break;
                 }
-                break;
             }
         }
 
