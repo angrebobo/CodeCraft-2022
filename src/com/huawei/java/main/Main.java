@@ -8,7 +8,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.security.Key;
 import java.util.*;
 
 /**
@@ -32,7 +31,7 @@ public class Main {
     //demand存储每个时刻客户节点的带宽需求，格式为<时刻，<客户节点名称，带宽需求>>
     static HashMap<String, HashMap<String, Integer>> demand = new HashMap<>();
     //存储客户节点和边缘节点的qos
-    static Integer[][] qos;
+    static String[][] qos;
     //demandConnectSite存储客户节点能连接到的边缘节点，格式为<客户节点名称，<边缘节点名称，该边缘节点名称能连接的客户节点数>>
     static HashMap<String, HashMap<String, Integer>> demandConnectSite = new HashMap<>();
     //siteConnectDemand存储边缘节点能连接到的客户节点，格式为<边缘节点名称，<客户节点名称，该客户节点名称能连接的边缘节点数>>
@@ -120,17 +119,25 @@ public class Main {
         }
 
         //初始化 qos二维数组
-        qos = new Integer[siteName.size()][demandName.size()];
+        qos = new String[siteName.size()+1][demandName.size()+1];
         try(BufferedReader reader = new BufferedReader(new FileReader(qosFile))){
             int row = 0;
+            int len;
             while ( (line=reader.readLine()) != null ){
                 temp = line.split(",");
-                int len = temp.length;
-                if("site_name".equals(temp[0]))
-                    continue;
-
-                for (int i = 1; i < len; i++) {
-                    qos[row][i-1] = (Integer.parseInt(temp[i]) < qosLimit) ? 1 : 0;
+                len = temp.length;
+                if("site_name".equals(temp[0])){
+                    for (int i = 0; i < len; i++) {
+                        qos[row][i] = temp[i];
+                    }
+                }
+                else {
+                    for (int i = 0; i < len; i++) {
+                        if(i > 0)
+                            qos[row][i] = (Integer.parseInt(temp[i]) < qosLimit) ? "1" : "0";
+                        else
+                            qos[row][i] = temp[i];
+                    }
                 }
                 row++;
             }
@@ -141,34 +148,59 @@ public class Main {
         //初始化siteConnectNum，demandConnectNum，siteConnectDemand，demandConnectSite
         HashMap<String, Integer> siteConnectNum = new HashMap<>();
         HashMap<String, Integer> demandConnectNum = new HashMap<>();
-        for (int i = 0; i < siteName.size(); i++) {
-            siteConnectNum.put(siteName.get(i), Arrays.stream(qos[i]).mapToInt(Integer::intValue).sum());
-        }
-        for (int i = 0; i < demandName.size(); i++) {
-            int count = 0;
-            for (int j = 0; j < siteName.size(); j++) {
-                count += qos[j][i];
-            }
-            demandConnectNum.put(demandName.get(i), count);
-        }
-
-        for (int i = 0; i < siteName.size(); i++) {
-            HashMap<String, Integer> map = new HashMap<>();
-            for (int j = 0; j < demandName.size(); j++) {
-                if(qos[i][j] == 1){
-                    map.put(demandName.get(j), demandConnectNum.get(demandName.get(j)));
-                    siteConnectDemand.put(siteName.get(i), map);
+        for (String siteName : siteName) {
+            for (int i = 1; i < qos.length; i++) {
+                if (qos[i][0].equals(siteName)) {
+                    int n = 0;
+                    for (int j = 1; j < qos[i].length; j++) {
+                        n += Integer.parseInt(qos[i][j]);
+                    }
+                    siteConnectNum.put(siteName, n);
+                    break;
                 }
             }
         }
 
-        for (int i = 0; i < demandName.size(); i++) {
-            HashMap<String, Integer> map = new HashMap<>();
-            for (int j = 0; j < siteName.size(); j++) {
-                if(qos[j][i] == 1){
-                    map.put(siteName.get(j), siteConnectNum.get(siteName.get(j)));
-                    demandConnectSite.put(demandName.get(i), map);
+        for (String name : demandName) {
+            for (int j = 1; j < qos[0].length; j++) {
+                if(qos[0][j].equals(name)){
+                    int n = 0;
+                    for (int i = 1; i < qos.length; i++) {
+                        n += Integer.parseInt(qos[i][j]);
+                    }
+                    demandConnectNum.put(name, n);
+                    break;
                 }
+            }
+        }
+
+        for (String siteName : siteName) {
+            for (int i = 0; i < qos.length; i++) {
+                if (qos[i][0].equals(siteName)) {
+                    HashMap<String, Integer> map = new HashMap<>();
+                    for (int j = 1; j < qos[i].length; j++) {
+                        if("1".equals(qos[i][j])){
+                            map.put(qos[0][j], demandConnectNum.get(qos[0][j]));
+                        }
+                    }
+                    siteConnectDemand.put(siteName, map);
+                }
+                break;
+            }
+        }
+
+        for (String demandName : demandName) {
+            for (int j = 0; j < qos[0].length; j++) {
+                if(qos[0][j].equals(demandName)){
+                    HashMap<String, Integer> map = new HashMap<>();
+                    for (int i = 1; i < qos.length; i++){
+                        if("1".equals(qos[i][j])){
+                            map.put(qos[i][0], siteConnectNum.get(qos[i][0]));
+                        }
+                    }
+                    demandConnectSite.put(demandName, map);
+                }
+                break;
             }
         }
 
