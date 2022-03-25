@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 
-/**
+/** 练习赛94名那次的提交
  * @Description 对客户的需求进行排序，先满足需求大的客户
  *  对客户的需求进行排序，先满足需求大的客户
  *  将客户节点能够连接的边缘节点列出来，按照边缘节点的容量和连接数作为权重分配的因素
