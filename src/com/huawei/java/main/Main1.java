@@ -392,14 +392,13 @@ public class Main1 {
             }
             result1.put(time, map);
         }
-        for(String time : timeList){
+        /*for(String time : timeList){
             System.out.println(time + ":");
             System.out.println(result1.get(time));
             System.out.println();
-        }
+        }*/
 
         //第二轮分配的分配方案,格式是<时间, <客户节点，<边缘节点，分配的流量>>>
-
 
         double rate = 0.00002;
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result2 = new HashMap<>();
@@ -444,7 +443,6 @@ public class Main1 {
                 return false;
             }
             result.put(time, dispatchStrategy);
-
         }
 
         return sign;
@@ -513,8 +511,6 @@ public class Main1 {
             //site_bandwidth_copy记录了节点的带宽剩余情况
         }
 
-
-
         return sign;
     }
 
@@ -527,7 +523,6 @@ public class Main1 {
 
         //校验
         Check.check_1(demand, demandName, timeList, siteName, result);
-//
         Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
     }
 }
