@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.security.Key;
 import java.util.*;
 
 /**
@@ -40,6 +41,7 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> siteConnectDemandSum = new HashMap<>();
     //存储日志
     static HashMap<String, HashMap<String, String>> log = new HashMap<>();
+    static String maxValue = "max";
 
     // ！！！在idea本地跑用这个路径
         static String demandFile = "data/demand.csv";
@@ -277,6 +279,7 @@ public class Main {
                     //当前时刻当前边缘节点高负载，做标记
                     fullLoadTime.get(time).put(site, 1);
                     fullLoadDays.put(site, fullLoadDays.get(site)-1);
+                    fullLoadDays.put(site+"all")
                     map.put(site, hashMap);
                 }
             }
@@ -325,17 +328,17 @@ public class Main {
         HashMap<String, HashMap<String, Integer>> dispatchStrategy = new HashMap<>();
 
         //边缘节点的负载率上限
-        Double usageUpper = 0.7;
+        Double usageUpper = 0.5;
         //边缘节点的负载率下限
-        Double usageFloor = 0.2;
+//        Double usageFloor = 0.2;
         String usage = "usage";
         HashMap<String, HashMap<String, Double>> usageOfSite = new HashMap<>();
         for (String site : siteName){
             HashMap<String, Double> temp = new HashMap<>();
-            //边缘节点达到负载率上限需要的带宽
+            /*//边缘节点达到负载率上限需要的带宽
             temp.put("usageUpper", site_bandwidth.get(site) * usageUpper);
             //边缘节点达到负载率下限需要的带宽
-            temp.put("usageFloor", site_bandwidth.get(site) * usageFloor);
+            temp.put("usageFloor", site_bandwidth.get(site) * usageFloor);*/
             //边缘节点当前的使用率
             temp.put(usage, (double) ((site_bandwidth.get(site) - timeSiteBandWidth.get(time).get(site))/site_bandwidth.get(site)));
             usageOfSite.put(site, temp);
@@ -359,7 +362,7 @@ public class Main {
 //            siteList.sort( (o1, o2) -> (int) (usageOfSite.get(o2).get(usage)-usageOfSite.get(o1).get(usage)) );
 
             //存储权重信息
-            /*HashMap<String, HashMap<String, BigDecimal>> weightMap = new HashMap<>();
+            HashMap<String, HashMap<String, BigDecimal>> weightMap = new HashMap<>();
             BigDecimal weightSum = new BigDecimal("0");
             for (String siteName : siteMap.keySet()){
                 HashMap<String, BigDecimal> temp = new HashMap<String, BigDecimal>(){{
@@ -369,7 +372,7 @@ public class Main {
                 }};
                 weightSum = weightSum.add( temp.get("capacity").divide(temp.get("connect"), 5, RoundingMode.CEILING) );
                 weightMap.put(siteName, temp);
-            }*/
+            }
 
             //存储分配结果
             HashMap<String, Integer> map = new HashMap<>();
@@ -409,10 +412,10 @@ public class Main {
                 //到这一步，说明该边缘节点在第一轮分配时没有分配到带宽
 
                 //权重计算
-                /*BigDecimal numerator = weightMap.get(siteName).get("capacity").divide(weightMap.get(siteName).get("connect"), 5, RoundingMode.FLOOR);
+                BigDecimal numerator = weightMap.get(siteName).get("capacity").divide(weightMap.get(siteName).get("connect"), 5, RoundingMode.FLOOR);
                 BigDecimal weight = numerator.divide(weightSum, 5, RoundingMode.FLOOR);
-                Integer curDispatch = weight.multiply(BigDecimal.valueOf(curDemand)).setScale(0, BigDecimal.ROUND_DOWN).intValue();*/
-                Integer curDispatch = curDemand_dynamic;
+                Integer curDispatch = weight.multiply(BigDecimal.valueOf(curDemand)).setScale(0, BigDecimal.ROUND_DOWN).intValue();
+
                 //日志，记录每次的权重分配，方便后续排查错误
                /* String name = time + "," + "客户:" + curClient + "," +"边缘:" + siteName;
                 HashMap<String, String> value = new HashMap<>();
@@ -421,10 +424,10 @@ public class Main {
                 log.put(name, value);*/
 
                 //防止分配出去的带宽 超过 能分配的带宽
-                /*if(curDispatch > curDemand_dynamic)
-                    curDispatch = curDemand_dynamic;*/
+                if(curDispatch > curDemand_dynamic)
+                    curDispatch = curDemand_dynamic;
 
-                //如果分配curDispatch，计算分配后的使用率，使用率= (当前要分配+初始带宽-剩余带宽)/(初始带宽)
+                /*//如果分配curDispatch，计算分配后的使用率，使用率= (当前要分配+初始带宽-剩余带宽)/(初始带宽)
                 Double uasgeSuppose = (double)(curDispatch + site_bandwidth.get(siteName) - remainBandWidth) / (double)(site_bandwidth.get(siteName));
                 //负载率过高或者过低，不分给该边缘节点
                 if(uasgeSuppose > usageUpper || uasgeSuppose < usageFloor)
@@ -432,7 +435,7 @@ public class Main {
 
                 remainBandWidth -= curDispatch;
                 //更新客户节点的流量需求
-                curDemand_dynamic -= curDispatch;
+                curDemand_dynamic -= curDispatch;*/
 
 
                 /*//当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
@@ -520,6 +523,8 @@ public class Main {
         }
         for(String site : siteName){
             fullLoadDays.put(site, day);
+            // Key:边缘节点+"allTime",value:该边缘节点的最高带宽使用量
+            fullLoadDays.put(site+maxValue, 0);
         }
 
         //第一轮分配的分配方案，格式是<时间, <边缘节点，<客户节点，分配的流量>>>
