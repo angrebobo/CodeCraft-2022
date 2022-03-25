@@ -250,12 +250,13 @@ public class Main {
                 demandNeed.replaceAll((k, v) -> demand_copy.get(time).get(k));
 
                 //边缘节点在当前能满负载 并且 满负载天数还有剩余
-                if (needSum >=25000/*remainBandWidth*0.5*/) {
+                if (needSum >= remainBandWidth*0.3) {
                     //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
                     HashMap<String, Integer> hashMap = new HashMap<>();
                     List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet());
                     //将客户节点按带宽需求从大到小排序
                     entryList.sort(((o1, o2) -> o2.getValue() - o1.getValue()));
+
                     for (Map.Entry<String, Integer> entry : entryList) {
                         if (remainBandWidth == 0)
                             break;
@@ -274,12 +275,12 @@ public class Main {
                             remainBandWidth = 0;
                         }
                     }
-                    //更新边缘节点的带宽
-                    timeSiteBandWidth.get(time).put(site, remainBandWidth);
                     //当前时刻当前边缘节点高负载，做标记
                     fullLoadTime.get(time).put(site, 1);
                     fullLoadDays.put(site, fullLoadDays.get(site)-1);
-                    fullLoadDays.put(site+"all")
+                    fullLoadDays.put(site+maxValue, Math.max(fullLoadDays.get(site+maxValue), timeSiteBandWidth.get(time).get(site)-remainBandWidth));
+                    //更新边缘节点的带宽
+                    timeSiteBandWidth.get(time).put(site, remainBandWidth);
                     map.put(site, hashMap);
                 }
             }
@@ -327,11 +328,26 @@ public class Main {
         //dispatchStrategy存储最终的分配方案
         HashMap<String, HashMap<String, Integer>> dispatchStrategy = new HashMap<>();
 
-        //边缘节点的负载率上限
+        //计算当前这批客户节点的总带宽需求
+        Integer demandNeedSum = demandMap.stream().mapToInt(Map.Entry::getValue).sum();
+        //计算当前这批客户节点连接的边缘节点的总剩余带宽
+        Integer siteBindWidthSum = 0;
+        for(Map.Entry<String, Integer> entry : demandMap){
+            for (String key : demandConnectSite.get(entry.getKey()).keySet()){
+                siteBindWidthSum += timeSiteBandWidth.get(time).get(key);
+            }
+        }
+        //阈值。在第二轮分配中，要尽可能分配平均。客户分配带宽给边缘节点，
+        //尽量不超过该阈值
+        Double threshold = Double.valueOf(demandNeedSum) / Double.valueOf(siteBindWidthSum);
+
+
+        /*//边缘节点的负载率上限
         Double usageUpper = 0.5;
         //边缘节点的负载率下限
-//        Double usageFloor = 0.2;
+        Double usageFloor = 0.2;*/
         String usage = "usage";
+        //初始化usageOfSite
         HashMap<String, HashMap<String, Double>> usageOfSite = new HashMap<>();
         for (String site : siteName){
             HashMap<String, Double> temp = new HashMap<>();
@@ -344,13 +360,12 @@ public class Main {
             usageOfSite.put(site, temp);
         }
 
+        //遍历客户节点
         for (Map.Entry<String, Integer> entry : demandMap){
             //客户节点名称
             String curClient = entry.getKey();
             //客户节点带宽需求
-            int curDemand = entry.getValue();
-            //cruDemand_dynamic表示客户节点带宽需求，会动态变化
-            int curDemand_dynamic = curDemand;
+            int curDemand_dynamic = entry.getValue();
 
             HashMap<String, Integer> siteMap = new HashMap<>( demandConnectSite.get(curClient) );
             //siteList存储客户节点能连接的边缘节点
@@ -376,6 +391,7 @@ public class Main {
 
             //存储分配结果
             HashMap<String, Integer> map = new HashMap<>();
+
             for(String siteName : siteList){
                 //remainBandWidth表示当前site的剩余带宽
                 Integer remainBandWidth = timeSiteBandWidth.get(time).get(siteName);
@@ -387,12 +403,12 @@ public class Main {
                 if(remainBandWidth == 0)
                     continue;
 
+
                 //该边缘节点在第一轮分配时已经分配过了，那就使该边缘节点尽可能高负载，把能分配的流量都给它
                 //或者该边缘节点的满负载天数还有剩余，将全部的带宽分配给它
                 if(fullLoadTime.get(time).get(siteName) == 1 || fullLoadDays.get(siteName) > 0){
                     if(curDemand_dynamic > remainBandWidth){
                         curDemand_dynamic -= remainBandWidth;
-
                         map.put(siteName, remainBandWidth);
                         timeSiteBandWidth.get(time).put(siteName, 0);
                     }
@@ -402,19 +418,23 @@ public class Main {
                         curDemand_dynamic = 0;
                     }
                     //更新边缘节点的使用率
-                    usageOfSite.get(siteName).put("usage", (double) ((site_bandwidth.get(siteName) - timeSiteBandWidth.get(time).get(siteName))/site_bandwidth.get(siteName)));
-                    if(fullLoadTime.get(time).get(siteName) == 0)
+                    usageOfSite.get(siteName).put(usage, (double) ((site_bandwidth.get(siteName) - timeSiteBandWidth.get(time).get(siteName))/site_bandwidth.get(siteName)));
+                    if(fullLoadTime.get(time).get(siteName) == 0){
                         fullLoadDays.put(siteName, fullLoadDays.get(siteName)-1);
+                        fullLoadTime.get(time).put(siteName, 1);
+                    }
 
                     continue;
                 }
 
-                //到这一步，说明该边缘节点在第一轮分配时没有分配到带宽
+                //当前边缘节点的负载率已经超过负载率
+                if(usageOfSite.get(siteName).get(usage) > threshold)
+                    continue;
 
                 //权重计算
                 BigDecimal numerator = weightMap.get(siteName).get("capacity").divide(weightMap.get(siteName).get("connect"), 5, RoundingMode.FLOOR);
                 BigDecimal weight = numerator.divide(weightSum, 5, RoundingMode.FLOOR);
-                Integer curDispatch = weight.multiply(BigDecimal.valueOf(curDemand)).setScale(0, BigDecimal.ROUND_DOWN).intValue();
+                int curDispatch = weight.multiply(BigDecimal.valueOf(entry.getValue())).setScale(0, BigDecimal.ROUND_DOWN).intValue();
 
                 //日志，记录每次的权重分配，方便后续排查错误
                /* String name = time + "," + "客户:" + curClient + "," +"边缘:" + siteName;
@@ -427,37 +447,44 @@ public class Main {
                 if(curDispatch > curDemand_dynamic)
                     curDispatch = curDemand_dynamic;
 
-                /*//如果分配curDispatch，计算分配后的使用率，使用率= (当前要分配+初始带宽-剩余带宽)/(初始带宽)
-                Double uasgeSuppose = (double)(curDispatch + site_bandwidth.get(siteName) - remainBandWidth) / (double)(site_bandwidth.get(siteName));
-                //负载率过高或者过低，不分给该边缘节点
-                if(uasgeSuppose > usageUpper || uasgeSuppose < usageFloor)
-                    continue;
-
-                remainBandWidth -= curDispatch;
-                //更新客户节点的流量需求
-                curDemand_dynamic -= curDispatch;*/
-
-
-                /*//当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
-                if(remainBandWidth >= curDispatch){
+                //如果分配curDispatch，计算分配后的使用率，使用率= (当前要分配+初始带宽-剩余带宽)/(初始带宽)
+                double usageSuppose = (double)(curDispatch + site_bandwidth.get(siteName) - remainBandWidth) / (double)(site_bandwidth.get(siteName));
+                //如果分配过去会使得该边缘节点的负载率超过阈值，那就分配给他到阈值的量
+                if(usageSuppose > threshold){
+                    int temp = (int)((double)site_bandwidth.get(siteName) * threshold);
+                    curDemand_dynamic -= temp-(site_bandwidth.get(siteName) - remainBandWidth);
+                    remainBandWidth -= temp-(site_bandwidth.get(siteName) - remainBandWidth);
+                }
+                else {
                     remainBandWidth -= curDispatch;
                     //更新客户节点的流量需求
                     curDemand_dynamic -= curDispatch;
                 }
-                //当前边缘节点的剩余带宽小于客户节点的带宽需求，先放能放下的部分，继续放下一个边缘节点
-                else{
-                    curDemand_dynamic -= remainBandWidth;
-                    remainBandWidth = 0;
-                }*/
 
                 //当前节点使用 = 分配前 - 分配后
-                map.put(siteName, timeSiteBandWidth.get(time).get(siteName)- remainBandWidth);
+                map.put(siteName, timeSiteBandWidth.get(time).get(siteName) - remainBandWidth);
                 //记录剩余带宽
                 timeSiteBandWidth.get(time).put(siteName, remainBandWidth);
+                //更新边缘节点的使用率
+                usageOfSite.get(siteName).put(usage, (double) ((site_bandwidth.get(siteName) - timeSiteBandWidth.get(time).get(siteName))/site_bandwidth.get(siteName)));
             }
 
-            //curDemand>0,说明上一轮没有分配完流量，现在再重新分配一次，采用随机法。这里的方法可以换，不过改进应该不大，毕竟剩余的流量较小。
+            //curDemand_dynamic>0,说明上一轮没有分配完流量，现在再分配一次,优先分配给负载率低的边缘节点
             if (curDemand_dynamic > 0){
+
+                /*while (curDemand_dynamic > 0){
+                    //边缘节点按照负载率从低到高排序
+                    siteList.sort( (o1, o2) -> (int) (usageOfSite.get(o1).get(usage)-usageOfSite.get(o2).get(usage)) );
+                    String siteName = siteList.get(0);
+                    Integer remainBandWidth = timeSiteBandWidth.get(time).get(siteName);
+                    if( usageOfSite.get(siteName).get(usage) > threshold){
+                        int n = siteList.size();
+
+                    }
+                    else {
+
+                    }
+                }*/
                 for(String siteName : siteList){
                     Integer remainBandWidth = timeSiteBandWidth.get(time).get(siteName);
 
