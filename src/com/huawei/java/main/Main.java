@@ -6,8 +6,6 @@ import util.ToFile;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -24,13 +22,13 @@ public class Main {
     //siteName存储边缘节点的名称
     static List<String> siteName = new ArrayList<>();
     //qos_constraint存储qos的上限值
-    static Integer qos_constraint;
+    static Integer qosLimit;
     //site_bandwidth存储边缘节点的带宽上限，格式为<边缘节点名称，带宽上限>
     static HashMap<String, Integer> site_bandwidth = new HashMap<>();
     //demand存储每个时刻客户节点的带宽需求，格式为<时刻，<客户节点名称，带宽需求>>
     static HashMap<String, HashMap<String, Integer>> demand = new HashMap<>();
     //存储客户节点和边缘节点的qos
-    static Integer[][] qos;
+    static String[][] qos;
     //demandConnectSite存储客户节点能连接到的边缘节点，格式为<客户节点名称，<边缘节点名称，该边缘节点名称能连接的客户节点数>>
     static HashMap<String, HashMap<String, Integer>> demandConnectSite = new HashMap<>();
     //siteConnectDemand存储边缘节点能连接到的客户节点，格式为<边缘节点名称，<客户节点名称，该客户节点名称能连接的边缘节点数>>
@@ -40,20 +38,20 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> siteConnectDemandSum = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
-        static String demandFile = "data/demand.csv";
-        static String site_bandwidthFile = "data/site_bandwidth.csv";
-        static String qosFile = "data/qos.csv";
-        static String qos_config = "data/config.ini";
-        static String filepath = "output/solution.txt";
-        static String logPath = "output/log.txt";
+//        static String demandFile = "data/demand.csv";
+//        static String site_bandwidthFile = "data/site_bandwidth.csv";
+//        static String qosFile = "data/qos.csv";
+//        static String qos_config = "data/config.ini";
+//        static String filepath = "output/solution.txt";
+//        static String logPath = "output/log.txt";
 
     // ！！！提交到线上用这个环境
-//    static String demandFile = "/data/demand.csv";
-//    static String site_bandwidthFile = "/data/site_bandwidth.csv";
-//    static String qosFile = "/data/qos.csv";
-//    static String qos_config = "/data/config.ini";
-//    static String filepath = "/output/solution.txt";
-//    static String logPath = "/output/log.txt";
+    static String demandFile = "/data/demand.csv";
+    static String site_bandwidthFile = "/data/site_bandwidth.csv";
+    static String qosFile = "/data/qos.csv";
+    static String qos_config = "/data/config.ini";
+    static String filepath = "/output/solution.txt";
+    static String logPath = "/output/log.txt";
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
@@ -70,11 +68,9 @@ public class Main {
             properties.load(reader);
             for (Object s : properties.keySet()){
                 if("qos_constraint".equals(s.toString())){
-                    qos_constraint = Integer.valueOf(properties.getProperty(s.toString()));
+                    qosLimit = Integer.valueOf(properties.getProperty(s.toString()));
                 }
             }
-//            System.out.println("qos_constraint: " + qos_constraint);
-
         } catch (IOException e) {
             System.out.println("初始化 qos_constraint 失败");
         }
@@ -88,8 +84,6 @@ public class Main {
                 siteName.add(temp[0]);
                 site_bandwidth.put(temp[0], Integer.valueOf(temp[1]));
             }
-//             System.out.println("site_bandwidth: " + site_bandwidth);
-//             System.out.println("siteName: " + siteName);
         }
         catch (IOException e) {
             System.out.println("初始化 边缘节点 失败");
@@ -115,68 +109,92 @@ public class Main {
                 //demand存储<时间，map>
                 demand.put(temp[0], map);
             }
-//            System.out.println("demand: " + demand);
-//            System.out.println("demandName: " + demandName);
-//            System.out.println("time: " + timeList);
         } catch (IOException e) {
             System.out.println("初始化 客户节点 失败");
         }
 
         //初始化 qos二维数组
-        qos = new Integer[siteName.size()][demandName.size()];
+        qos = new String[siteName.size()+1][demandName.size()+1];
         try(BufferedReader reader = new BufferedReader(new FileReader(qosFile))){
             int row = 0;
+            int len;
             while ( (line=reader.readLine()) != null ){
                 temp = line.split(",");
-                int len = temp.length;
-                if("site_name".equals(temp[0]))
-                    continue;
-
-                for (int i = 1; i < len; i++) {
-                    qos[row][i-1] = (Integer.parseInt(temp[i]) < qos_constraint) ? 1 : 0;
+                len = temp.length;
+                if("site_name".equals(temp[0])){
+                    for (int i = 0; i < len; i++) {
+                        qos[row][i] = temp[i];
+                    }
+                }
+                else {
+                    for (int i = 0; i < len; i++) {
+                        if(i > 0)
+                            qos[row][i] = (Integer.parseInt(temp[i]) < qosLimit) ? "1" : "0";
+                        else
+                            qos[row][i] = temp[i];
+                    }
                 }
                 row++;
             }
-//            for (int i = 0; i < qos.length; i++) {
-//                for (int j = 0; j < qos[0].length; j++) {
-//                    System.out.print(qos[i][j] + " ");
-//                }
-//                System.out.println();
-//            }
         } catch (IOException e) {
             System.out.println("初始化 qos二维数组 失败");
         }
 
+        //初始化siteConnectNum，demandConnectNum，siteConnectDemand，demandConnectSite
         HashMap<String, Integer> siteConnectNum = new HashMap<>();
         HashMap<String, Integer> demandConnectNum = new HashMap<>();
-        for (int i = 0; i < siteName.size(); i++) {
-            siteConnectNum.put(siteName.get(i), Arrays.stream(qos[i]).mapToInt(Integer::intValue).sum());
-        }
-        for (int i = 0; i < demandName.size(); i++) {
-            int count = 0;
-            for (int j = 0; j < siteName.size(); j++) {
-                count += qos[j][i];
-            }
-            demandConnectNum.put(demandName.get(i), count);
-        }
-
-        for (int i = 0; i < siteName.size(); i++) {
-            HashMap<String, Integer> map = new HashMap<>();
-            for (int j = 0; j < demandName.size(); j++) {
-
-                if(qos[i][j] == 1){
-                    map.put(demandName.get(j), demandConnectNum.get(demandName.get(j)));
-                    siteConnectDemand.put(siteName.get(i), map);
+        for (String siteName : siteName) {
+            for (int i = 1; i < qos.length; i++) {
+                if (qos[i][0].equals(siteName)) {
+                    int n = 0;
+                    for (int j = 1; j < qos[i].length; j++) {
+                        n += Integer.parseInt(qos[i][j]);
+                    }
+                    siteConnectNum.put(siteName, n);
+                    break;
                 }
             }
         }
 
-        for (int i = 0; i < demandName.size(); i++) {
-            HashMap<String, Integer> map = new HashMap<>();
-            for (int j = 0; j < siteName.size(); j++) {
-                if(qos[j][i] == 1){
-                    map.put(siteName.get(j), siteConnectNum.get(siteName.get(j)));
-                    demandConnectSite.put(demandName.get(i), map);
+        for (String name : demandName) {
+            for (int j = 1; j < qos[0].length; j++) {
+                if(qos[0][j].equals(name)){
+                    int n = 0;
+                    for (int i = 1; i < qos.length; i++) {
+                        n += Integer.parseInt(qos[i][j]);
+                    }
+                    demandConnectNum.put(name, n);
+                    break;
+                }
+            }
+        }
+
+        for (String siteName : siteName) {
+            for (int i = 0; i < qos.length; i++) {
+                if (qos[i][0].equals(siteName)) {
+                    HashMap<String, Integer> map = new HashMap<>();
+                    for (int j = 1; j < qos[i].length; j++) {
+                        if("1".equals(qos[i][j])){
+                            map.put(qos[0][j], demandConnectNum.get(qos[0][j]));
+                        }
+                    }
+                    siteConnectDemand.put(siteName, map);
+                    break;
+                }
+            }
+        }
+
+        for (String demandName : demandName) {
+            for (int j = 0; j < qos[0].length; j++) {
+                if(qos[0][j].equals(demandName)){
+                    HashMap<String, Integer> map = new HashMap<>();
+                    for (int i = 1; i < qos.length; i++){
+                        if("1".equals(qos[i][j])){
+                            map.put(qos[i][0], siteConnectNum.get(qos[i][0]));
+                        }
+                    }
+                    demandConnectSite.put(demandName, map);
+                    break;
                 }
             }
         }
@@ -197,7 +215,6 @@ public class Main {
             }
             siteConnectDemandSum.put(time, map);
         }
-
     }
 
     /**
@@ -209,128 +226,6 @@ public class Main {
         List<String> temp = new ArrayList<>();
         Arrays.stream(array).forEach(temp::add);
         return temp;
-    }
-
-    /**
-     * @Description 对客户的需求进行排序，先满足需求大的客户
-     * 将客户节点能够连接的边缘节点列出来，按照边缘节点的容量和连接数作为权重分配的因素
-     * 权重公式为(容量/连接数)
-     * @return
-     */
-    public static HashMap<String, HashMap<String, Integer>> dispatchBasedMaxBandSite(List<Map.Entry<String, Integer>> demandMap, String time, HashMap<String, HashMap<String, Integer>> timeSiteBandWidth){
-        //dispatchStrategy存储最终的分配方案
-        HashMap<String, HashMap<String, Integer>> dispatchStrategy = new HashMap<>();
-
-        for (Map.Entry<String, Integer> entry : demandMap){
-            //客户节点名称
-            String curClient = entry.getKey();
-            //客户节点带宽需求
-            int curDemand = entry.getValue();
-            //cruDemand_dynamic表示客户节点带宽需求，会动态变化
-            int cruDemand_dynamic = curDemand;
-            HashMap<String, Integer> siteMap = new HashMap<>( demandConnectSite.get(curClient) );
-
-            //存储权重信息
-            HashMap<String, HashMap<String, BigDecimal>> weightMap = new HashMap<>();
-            BigDecimal weightSum = new BigDecimal("0");
-            for (String siteName : siteMap.keySet()){
-                HashMap<String, BigDecimal> temp = new HashMap<String, BigDecimal>(){{
-                    put("capacity", BigDecimal.valueOf(site_bandwidth.get(siteName)));
-                    put("connect", BigDecimal.valueOf(siteMap.get(siteName)));
-                }};
-                weightSum = weightSum.add( temp.get("capacity").divide(temp.get("connect"), 5, RoundingMode.CEILING) );
-                weightMap.put(siteName, temp);
-            }
-
-            HashMap<String, Integer> map = new HashMap<>();
-
-            for(String siteName : siteMap.keySet()){
-                //remainBandWidth表示当前site的剩余带宽
-                Integer remainBandWidth = timeSiteBandWidth.get(time).get(siteName);
-
-                //用户节点的带宽已分配完，结束循环
-                if(cruDemand_dynamic == 0)
-                    break;
-                //当前边缘节点已经无带宽可承担，跳过该节点
-                if(remainBandWidth == 0)
-                    continue;
-
-                //权重计算
-                BigDecimal numerator = weightMap.get(siteName).get("capacity").divide(weightMap.get(siteName).get("connect"), 5, RoundingMode.FLOOR);
-                BigDecimal weight = numerator.divide(weightSum, 5, RoundingMode.FLOOR);
-                Integer curDispatch = weight.multiply(BigDecimal.valueOf(curDemand)).setScale(0, BigDecimal.ROUND_DOWN).intValue();
-
-                //日志，记录每次的权重分配，方便后续排查错误
-//                String name = time + "," + "客户:" + curClient + "," +"边缘:" + siteName;
-//                HashMap<String, String> value = new HashMap<>();
-//                value.put("weight", String.valueOf(weight));
-//                value.put("alreadyDispatch", String.valueOf(curDispatch));
-//                log.put(name, value);
-
-                if(curDispatch > cruDemand_dynamic)
-                    curDispatch = cruDemand_dynamic;
-
-                //当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
-                if(remainBandWidth >= curDispatch){
-                    remainBandWidth -= curDispatch;
-                    //更新客户节点的流量需求
-                    cruDemand_dynamic -= curDispatch;
-                }
-                //当前边缘节点的剩余带宽小于客户节点的带宽需求，先放能放下的部分，继续放下一个边缘节点
-                else{
-                    cruDemand_dynamic -= remainBandWidth;
-                    remainBandWidth = 0;
-                }
-
-                //当前节点使用 = 分配前 - 分配后
-                map.put(siteName, timeSiteBandWidth.get(time).get(siteName)- remainBandWidth);
-//                System.out.println("map: " + map);
-
-                //记录剩余带宽
-                HashMap<String,Integer> temp = timeSiteBandWidth.get(time);
-                temp.put(siteName, remainBandWidth);
-                timeSiteBandWidth.put(time, temp);
-            }
-
-            //curDemand>0,说明上一轮没有分配完流量，现在再重新分配一次，采用随机法。这里的方法可以换，不过改进应该不大，毕竟剩余的流量较小。
-            if (cruDemand_dynamic > 0){
-                for(String siteName : siteMap.keySet()){
-                    Integer remainBandWidth = timeSiteBandWidth.get(time).get(siteName);
-
-                    if(cruDemand_dynamic == 0)
-                        break;
-                    if(remainBandWidth == 0)
-                        continue;
-
-                    if(remainBandWidth >= cruDemand_dynamic){
-                        remainBandWidth -= cruDemand_dynamic;
-                        cruDemand_dynamic = 0;
-                    }
-                    else {
-                        cruDemand_dynamic -= remainBandWidth;
-                        remainBandWidth = 0;
-                    }
-
-                    Integer alreadyDispatch = map.get(siteName);
-                    map.put(siteName, alreadyDispatch + timeSiteBandWidth.get(time).get(siteName) - remainBandWidth);
-
-                    HashMap<String,Integer> temp = timeSiteBandWidth.get(time);
-                    temp.put(siteName, remainBandWidth);
-                    timeSiteBandWidth.put(time, temp);
-
-                    //日志，记录每次的权重分配，方便后续排查错误
-//                    String name = time + ", " + "客户：" + curClient + ", " +"边缘：" + siteName;
-//                    HashMap<String, String> value = new HashMap<>();
-//                    value.put("second" , "curDemand:" + curDemand +", alreadyDispatch:"+(site_bandwidth_copy.get(siteName)-remainBandWidth)+"");
-//                    log.put(name, value);
-                }
-            }
-
-            dispatchStrategy.put(curClient, map);
-            //site_bandwidth_copy记录了节点的带宽剩余情况
-        }
-
-        return dispatchStrategy;
     }
 
     /**
@@ -469,7 +364,7 @@ public class Main {
             HashMap<String, HashMap<String, Integer>> fullLoadTime,
             HashMap<String, Integer> fullLoadDays) {
 
-        boolean sign = true;
+
         for (String time : timeList){
             //得到当前时刻，所有客户节点的需求流量
             HashMap<String, Integer> demandMap = demand_copy.get(time);
@@ -494,7 +389,7 @@ public class Main {
             }
             result.put(time, dispatchStrategy);
         }
-        return sign;
+        return true;
     }
 
 
@@ -571,7 +466,7 @@ public class Main {
 //        ToFile.writeLog(logPath, log);
 
         //校验
-        Check.check_1(demand, demandName, timeList, siteName, result);
-        Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
+//        Check.check_1(demand, demandName, timeList, siteName, result);
+//        Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
     }
 }
