@@ -388,15 +388,18 @@ public class Main1 {
                     //更新满负载的天数
                     fullLoadDays.put(site, fullLoadDays.get(site) - 1);
                 }
-                map.put(site, hashMap);
+                if(hashMap.size()!=0)
+                    map.put(site, hashMap);
+
             }
+
             result1.put(time, map);
         }
-        /*for(String time : timeList){
-            System.out.println(time + ":");
-            System.out.println(result1.get(time));
-            System.out.println();
-        }*/
+//        for(String time : timeList){
+//            System.out.println(time + ":");
+//            System.out.println(result1.get(time));
+//            System.out.println();
+//        }
 
         //第二轮分配的分配方案,格式是<时间, <客户节点，<边缘节点，分配的流量>>>
 
