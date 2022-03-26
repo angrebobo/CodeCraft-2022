@@ -1,5 +1,6 @@
 package com.huawei.java.main;
 
+import jdk.nashorn.internal.runtime.regexp.joni.ast.StringNode;
 import util.Check;
 import util.ToFile;
 
@@ -389,6 +390,8 @@ public class Test {
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = new HashMap<>();
 
         for (String time : timeList){
+            System.out.println(time);
+
             //得到当前时刻，所有客户节点的需求流量
             List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demand_copy.get(time).entrySet());
 
@@ -417,6 +420,7 @@ public class Test {
                         siteWithMaxUseAbleBand.put(site.getKey(), a);
                 }
 
+                //---------------检测结果正确性-----------------
                 Integer demandNeedSum = 0;
                 for(Map.Entry<String, Integer> entry: demandList){
                     demandNeedSum += entry.getValue();
@@ -425,9 +429,11 @@ public class Test {
                 Integer siteSum;
                 siteSum = siteWithMaxUseAbleBand.values().stream().mapToInt(Integer::intValue).sum();
                 System.out.println("分配前边缘节点总带宽: " + siteSum);
+                //---------------------------------------------
 
                 signal = dispatchBasedDemandClientAndUsedBandSite(demandList, siteWithMaxUseAbleBand, dispatchStrategy, fullLoadTime, fullLoadDays, time);
 
+                //---------------检测结果正确性-----------------
                 Integer demandNeedSum1 = 0;
                 for(Map.Entry<String, Integer> entry: demandList){
                     demandNeedSum1 += entry.getValue();
@@ -438,10 +444,7 @@ public class Test {
                 siteSum1 = siteWithMaxUseAbleBand.values().stream().mapToInt(Integer::intValue).sum();
                 System.out.println("分配后边缘节点总带宽: " + siteSum1);
                 System.out.println("这一轮总共承担了" + (siteSum-siteSum1) + "带宽");
-
-                System.out.println("demandList: " + demandList);
-                System.out.println("siteWithMaxUseAbleBand: " + siteWithMaxUseAbleBand);
-                System.out.println("dispatchStrategy" + dispatchStrategy);
+                //---------------------------------------------
 
                 //将siteWithMaxUseAbleBand更新回timeSiteBandWidth
                 for (String site : siteWithMaxUseAbleBand.keySet()){
@@ -456,7 +459,20 @@ public class Test {
                 rate += 0.05;
                 rate = (rate>=1) ? 1 : rate;
                 System.out.println(rate);
+                System.out.println();
+                System.out.println();
             }
+
+            //---------------检测结果正确性-----------------
+            int dsum = demand_copy.get(time).values().stream().mapToInt(Integer::intValue).sum();
+            System.out.println("该时刻客户节点的总需求为:" +dsum);
+            int starSum = 0;
+            for(String name : demand_copy.get(time).keySet()){
+                starSum += dispatchStrategy.get(name).values().stream().mapToInt(Integer::intValue).sum();
+            }
+            System.out.println("分配策略总共分配了" + starSum +"带宽");
+
+            //--------------------------------------------
 
             result.put(time, dispatchStrategy);
         }
@@ -503,7 +519,7 @@ public class Test {
             }
 
             //存储这一轮的边缘节点的分配情况
-            HashMap<String, Integer> map = new HashMap<>();
+            HashMap<String, Integer> map = dispatchStrategy.getOrDefault(time, new HashMap<>());
 
             //遍历边缘节点
             for(String site : siteList){
@@ -532,7 +548,7 @@ public class Test {
                         resband -= curDemand;
                         curDemand = 0;
                     }
-                    map.put(site, alreadyDispath);
+                    map.put(site, map.getOrDefault(site, 0) + alreadyDispath);
                     siteWithMaxUseAbleBand.put(site, resband);
                     if(fullLoadTime.get(time).get(site) == 0){
                         fullLoadDays.put(site, fullLoadDays.get(site)-1);
@@ -558,8 +574,6 @@ public class Test {
                     curDemand -= curDispatch;
                 }
 
-
-
                 //当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
                 if(resband >= curDispatch){
                     resband -= curDispatch;
@@ -575,7 +589,7 @@ public class Test {
                 curDemand += curDispatch;
                 //记录剩余带宽
                 siteWithMaxUseAbleBand.put(site, resband);
-                map.put(site, beforResband-resband);
+                map.put(site, map.getOrDefault(site, 0) + beforResband-resband);
             }
 
             if (curDemand > 0){
@@ -595,7 +609,7 @@ public class Test {
                         curDemand -= remainBandWidth;
                         remainBandWidth = 0;
                     }
-                    map.put(siteName, siteWithMaxUseAbleBand.get(siteName)-remainBandWidth);
+                    map.put(siteName, map.getOrDefault(siteName, 0) + siteWithMaxUseAbleBand.get(siteName)-remainBandWidth);
                     siteWithMaxUseAbleBand.put(siteName, remainBandWidth);
                 }
             }
