@@ -288,8 +288,12 @@ public class Main {
         //每轮时间，最多有countLimit个边缘节点达到高负载
         int countLimit = (int)(siteName.size() * 0.05);
 
+        List<String> time_list = new LinkedList<>(timeList);
+        time_list.sort((o1, o2) -> siteConnectDemandSum.get(o2).values().stream().mapToInt(Integer::intValue).sum()-siteConnectDemandSum.get(o1).values().stream().mapToInt(Integer::intValue).sum());
+
         //第一轮分配方案
-        for (String time : timeList) {
+//        for (String time : timeList) {
+        for (String time : time_list) {
 
             //根据连接的客户节点的流量总和大小来排序
             List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteConnectDemandSum.get(time).entrySet());
@@ -323,7 +327,7 @@ public class Main {
                 Integer remainBandWidth = timeSiteBandWidth.get(time).get(site);
 
                 //边缘节点在当前能满负载
-                if (needSum >= 2000000 /*remainBandWidth*0.3*/) {
+                if (needSum >= 2000000 /*remainBandWidth*0.01*/) {
                     //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
                     HashMap<String, Integer> hashMap = new HashMap<>();
 
@@ -452,7 +456,7 @@ public class Main {
                 }
                 before_rate = rate;
 //                rate = rate*1.1;
-                rate += 0.05;
+                rate += 0.005;
                 rate = (rate>=1) ? 1 : rate;
                 /*System.out.println(rate);
                 System.out.println();*/
@@ -498,7 +502,8 @@ public class Main {
             //siteList存储客户节点能连接的边缘节点
             List<String> siteList = new ArrayList<>(siteMap.keySet());
             //按边缘节点的剩余带宽从大到小排序
-            siteList.sort((o1, o2) -> siteWithMaxUseAbleBand.get(o2)-siteWithMaxUseAbleBand.get(o1));
+//            siteList.sort((o1, o2) -> siteWithMaxUseAbleBand.get(o2)-siteWithMaxUseAbleBand.get(o1));
+            siteList.sort((Comparator.comparingInt(o -> siteConnectDemand.getOrDefault(o, new HashMap()).size())));
 
             //存储权重信息
             HashMap<String, HashMap<String, BigDecimal>> weightMap = new HashMap<>();
@@ -588,40 +593,7 @@ public class Main {
             }
 
             if (curDemand > 0){
-
-                List<String> list = new ArrayList<>();
                 for(String siteName : siteList){
-                    if( siteWithMaxUseAbleBand.get(siteName) > 0 )
-                        list.add(siteName);
-                }
-
-                int count = list.size();
-                int curDis;
-                for (int i = 0; i < list.size(); i++) {
-                    if(curDemand == 0)
-                        break;
-                    if(i == count-1){
-                        curDis = curDemand;
-                    }
-                    else {
-                        curDis = curDemand / count;
-                    }
-                    curDemand -= curDis;
-                    Integer remainBandWidth = siteWithMaxUseAbleBand.get(list.get(i));
-                    if(remainBandWidth >= curDis){
-                        remainBandWidth -= curDis;
-                        curDis = 0;
-                    }
-                    else {
-                        curDis -= remainBandWidth;
-                        remainBandWidth = 0;
-                    }
-                    curDemand += curDis;
-                    map.put(list.get(i), map.getOrDefault(list.get(i), 0) + siteWithMaxUseAbleBand.get(list.get(i))-remainBandWidth);
-                    siteWithMaxUseAbleBand.put(list.get(i), remainBandWidth);
-                }
-
-                /*for(String siteName : siteList){
                     Integer remainBandWidth = siteWithMaxUseAbleBand.get(siteName);
                     if(curDemand == 0)
                         break;
@@ -638,7 +610,7 @@ public class Main {
                     }
                     map.put(siteName, map.getOrDefault(siteName, 0) + siteWithMaxUseAbleBand.get(siteName)-remainBandWidth);
                     siteWithMaxUseAbleBand.put(siteName, remainBandWidth);
-                }*/
+                }
             }
             entry.setValue(curDemand);
             dispatchStrategy.put(curClient, map);
