@@ -439,9 +439,9 @@ public class Test {
 
         //复制一份 节点-剩余容量 map,因为每个时间节点开始都是满的，所以每次都直接复制最大值*rate。
         HashMap<String, Integer> site_bandwidth_copy = new HashMap<>(siteWithMaxUseAbleBand);
-//        System.out.println(site_bandwidth_copy);
         //连接数少的先满足
         demandList.sort((Comparator.comparingInt(o -> demandConnectSite.getOrDefault(o.getKey(), new HashMap()).size())));
+
         for (Map.Entry<String, Integer> entry : demandList){
             //客户节点名称
             String curClient = entry.getKey();
