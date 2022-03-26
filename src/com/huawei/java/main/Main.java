@@ -41,20 +41,20 @@ public class Main {
     static String maxValue = "max";
 
     // ！！！在idea本地跑用这个路径
-    static String demandFile = "data/demand.csv";
-    static String site_bandwidthFile = "data/site_bandwidth.csv";
-    static String qosFile = "data/qos.csv";
-    static String qos_config = "data/config.ini";
-    static String filepath = "output/solution.txt";
-    static String logPath = "output/log.txt";
+//    static String demandFile = "data/demand.csv";
+//    static String site_bandwidthFile = "data/site_bandwidth.csv";
+//    static String qosFile = "data/qos.csv";
+//    static String qos_config = "data/config.ini";
+//    static String filepath = "output/solution.txt";
+//    static String logPath = "output/log.txt";
 
     // ！！！提交到线上用这个环境
-//    static String demandFile = "/data/demand.csv";
-//    static String site_bandwidthFile = "/data/site_bandwidth.csv";
-//    static String qosFile = "/data/qos.csv";
-//    static String qos_config = "/data/config.ini";
-//    static String filepath = "/output/solution.txt";
-//    static String logPath = "/output/log.txt";
+    static String demandFile = "/data/demand.csv";
+    static String site_bandwidthFile = "/data/site_bandwidth.csv";
+    static String qosFile = "/data/qos.csv";
+    static String qos_config = "/data/config.ini";
+    static String filepath = "/output/solution.txt";
+    static String logPath = "/output/log.txt";
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
@@ -323,7 +323,7 @@ public class Main {
                 Integer remainBandWidth = timeSiteBandWidth.get(time).get(site);
 
                 //边缘节点在当前能满负载
-                if (needSum >= 10000 /*remainBandWidth*0.01*/) {
+                if (needSum >= /*10000*/ remainBandWidth*0.05) {
                     //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
                     HashMap<String, Integer> hashMap = new HashMap<>();
 
@@ -624,7 +624,7 @@ public class Main {
 //        ToFile.writeLog(logPath, log);
 
         //对最终的分配方案做校验
-        Check.check_1(demand, demandName, timeList, siteName, result);
-        Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
+//        Check.check_1(demand, demandName, timeList, siteName, result);
+//        Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
     }
 }
