@@ -519,7 +519,7 @@ public class Test {
             }
 
             //存储这一轮的边缘节点的分配情况
-            HashMap<String, Integer> map = dispatchStrategy.getOrDefault(time, new HashMap<>());
+            HashMap<String, Integer> map = dispatchStrategy.getOrDefault(curClient, new HashMap<>());
 
             //遍历边缘节点
             for(String site : siteList){
