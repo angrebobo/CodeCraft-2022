@@ -383,10 +383,6 @@ public class Main {
         HashMap<String, HashMap<String, Double>> usageOfSite = new HashMap<>();
         for (String site : siteName){
             HashMap<String, Double> temp = new HashMap<>();
-            /*//边缘节点达到负载率上限需要的带宽
-            temp.put("usageUpper", site_bandwidth.get(site) * usageUpper);
-            //边缘节点达到负载率下限需要的带宽
-            temp.put("usageFloor", site_bandwidth.get(site) * usageFloor);*/
             //边缘节点当前的使用率
             temp.put(usage, (double) ((site_bandwidth.get(site) - timeSiteBandWidth.get(time).get(site))/site_bandwidth.get(site)));
             usageOfSite.put(site, temp);
