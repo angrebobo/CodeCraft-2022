@@ -417,7 +417,31 @@ public class Test {
                         siteWithMaxUseAbleBand.put(site.getKey(), a);
                 }
 
+                Integer demandNeedSum = 0;
+                for(Map.Entry<String, Integer> entry: demandList){
+                    demandNeedSum += entry.getValue();
+                }
+                System.out.println("分配前客户节点总需求: " + demandNeedSum);
+                Integer siteSum;
+                siteSum = siteWithMaxUseAbleBand.values().stream().mapToInt(Integer::intValue).sum();
+                System.out.println("分配前边缘节点总带宽: " + siteSum);
+
                 signal = dispatchBasedDemandClientAndUsedBandSite(demandList, siteWithMaxUseAbleBand, dispatchStrategy, fullLoadTime, fullLoadDays, time);
+
+                Integer demandNeedSum1 = 0;
+                for(Map.Entry<String, Integer> entry: demandList){
+                    demandNeedSum1 += entry.getValue();
+                }
+                System.out.println("分配后客户节点总需求: " + demandNeedSum1);
+                System.out.println("这一轮总共分配出去" + (demandNeedSum-demandNeedSum1) + "带宽");
+                Integer siteSum1;
+                siteSum1 = siteWithMaxUseAbleBand.values().stream().mapToInt(Integer::intValue).sum();
+                System.out.println("分配后边缘节点总带宽: " + siteSum1);
+                System.out.println("这一轮总共承担了" + (siteSum-siteSum1) + "带宽");
+
+                System.out.println("demandList: " + demandList);
+                System.out.println("siteWithMaxUseAbleBand: " + siteWithMaxUseAbleBand);
+                System.out.println("dispatchStrategy" + dispatchStrategy);
 
                 //将siteWithMaxUseAbleBand更新回timeSiteBandWidth
                 for (String site : siteWithMaxUseAbleBand.keySet()){
@@ -481,8 +505,6 @@ public class Test {
             //存储这一轮的边缘节点的分配情况
             HashMap<String, Integer> map = new HashMap<>();
 
-            int temp = 0;
-
             //遍历边缘节点
             for(String site : siteList){
                 if(curDemand == 0)
@@ -526,9 +548,6 @@ public class Test {
                 BigDecimal numerator = weightMap.get(site).get("capacity").divide(weightMap.get(site).get("connect"), 5, RoundingMode.FLOOR);
                 BigDecimal weight = numerator.divide(weightSum, 5, RoundingMode.FLOOR);
                 int curDispatch = weight.multiply(BigDecimal.valueOf(entry.getValue())).setScale(0, BigDecimal.ROUND_DOWN).intValue();
-
-                temp+=curDispatch;
-                System.out.println("curDemand: " + curDemand + " curDispatch:" + curDispatch + " temp: " + temp);
 
                 //防止分配出去的带宽 超过 能分配的带宽
                 if(curDispatch > curDemand){

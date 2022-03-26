@@ -98,6 +98,11 @@ public class Check {
         System.out.println("所有边缘节点在95%位置的总带宽" + bindWidthSum);
     }
 
+    public void check_3(List<Map.Entry<String, Integer>> demandList, HashMap<String, Integer> siteWithMaxUseAbleBand,HashMap<String, HashMap<String, Integer>> dispatchStrategy){
+
+
+    }
+
     //能够实现深拷贝
     public static <T extends Serializable> T MyClone(T object) {
         T result = null;
