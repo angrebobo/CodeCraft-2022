@@ -420,7 +420,7 @@ public class Test {
                         siteWithMaxUseAbleBand.put(site.getKey(), a);
                 }
 
-                //---------------检测结果正确性-----------------
+                /*//---------------检测结果正确性-----------------
                 Integer demandNeedSum = 0;
                 for(Map.Entry<String, Integer> entry: demandList){
                     demandNeedSum += entry.getValue();
@@ -429,11 +429,11 @@ public class Test {
                 Integer siteSum;
                 siteSum = siteWithMaxUseAbleBand.values().stream().mapToInt(Integer::intValue).sum();
                 System.out.println("分配前边缘节点总带宽: " + siteSum);
-                //---------------------------------------------
+                //---------------------------------------------*/
 
                 signal = dispatchBasedDemandClientAndUsedBandSite(demandList, siteWithMaxUseAbleBand, dispatchStrategy, fullLoadTime, fullLoadDays, time);
 
-                //---------------检测结果正确性-----------------
+                /*//---------------检测结果正确性-----------------
                 Integer demandNeedSum1 = 0;
                 for(Map.Entry<String, Integer> entry: demandList){
                     demandNeedSum1 += entry.getValue();
@@ -444,7 +444,7 @@ public class Test {
                 siteSum1 = siteWithMaxUseAbleBand.values().stream().mapToInt(Integer::intValue).sum();
                 System.out.println("分配后边缘节点总带宽: " + siteSum1);
                 System.out.println("这一轮总共承担了" + (siteSum-siteSum1) + "带宽");
-                //---------------------------------------------
+                //---------------------------------------------*/
 
                 //将siteWithMaxUseAbleBand更新回timeSiteBandWidth
                 for (String site : siteWithMaxUseAbleBand.keySet()){
@@ -460,19 +460,18 @@ public class Test {
                 rate = (rate>=1) ? 1 : rate;
                 System.out.println(rate);
                 System.out.println();
-                System.out.println();
             }
 
-            //---------------检测结果正确性-----------------
-            int dsum = demand_copy.get(time).values().stream().mapToInt(Integer::intValue).sum();
-            System.out.println("该时刻客户节点的总需求为:" +dsum);
-            int starSum = 0;
-            for(String name : demand_copy.get(time).keySet()){
-                starSum += dispatchStrategy.get(name).values().stream().mapToInt(Integer::intValue).sum();
-            }
-            System.out.println("分配策略总共分配了" + starSum +"带宽");
-
-            //--------------------------------------------
+            /*//---------------检测结果正确性-----------------
+            //            int dsum = demand_copy.get(time).values().stream().mapToInt(Integer::intValue).sum();
+            //            System.out.println("该时刻客户节点的总需求为:" +dsum);
+            //            int starSum = 0;
+            //            for(String name : demand_copy.get(time).keySet()){
+            //                starSum += dispatchStrategy.get(name).values().stream().mapToInt(Integer::intValue).sum();
+            //            }
+            //            System.out.println("分配策略总共分配了" + starSum +"带宽");
+            //
+            //            //--------------------------------------------*/
 
             result.put(time, dispatchStrategy);
         }
