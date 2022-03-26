@@ -284,6 +284,22 @@ public class Main1 {
 
         //第一轮分配方案
         for (String time : timeList) {
+
+            List<String> siteList = new ArrayList<>(siteName);
+            HashMap<String, Integer> demandNeed = Check.MyClone(siteConnectDemand);
+            //该边缘节点是个死节点，连接不到任何客户节点
+            if(siteConnectDemand.getOrDefault(site, null) == null){
+                continue;
+            }
+            for(String demand : demandName){
+                if(!siteConnectDemand.get(site).containsKey(demand))
+                    demandNeed.remove(demand);
+            }
+            //needSum表示所有客户节点的需求总和
+            Integer needSum = demandNeed.values().stream().mapToInt(Integer::intValue).sum();
+
+
+
             HashMap<String, Integer> needMap = siteConnectDemandSum.get(time);
             //根据连接的客户节点的流量总和大小来排序
             List<Map.Entry<String, Integer>> entryList1 = new ArrayList<>(needMap.entrySet());
