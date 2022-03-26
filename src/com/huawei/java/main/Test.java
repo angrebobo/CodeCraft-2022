@@ -1,6 +1,5 @@
 package com.huawei.java.main;
 
-import jdk.nashorn.internal.runtime.regexp.joni.ast.StringNode;
 import util.Check;
 import util.ToFile;
 
@@ -10,7 +9,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @Description 相比Main1，优化了第一轮分配
@@ -590,7 +588,6 @@ public class Test {
             }
 
             if (curDemand > 0){
-
                 for(String siteName : siteList){
                     Integer remainBandWidth = siteWithMaxUseAbleBand.get(siteName);
                     if(curDemand == 0)
