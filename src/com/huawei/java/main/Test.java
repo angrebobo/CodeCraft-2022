@@ -325,14 +325,14 @@ public class Test {
                 Integer remainBandWidth = timeSiteBandWidth.get(time).get(site);
 
                 //边缘节点在当前能满负载
-                if (needSum >= 10000) {
+                if (needSum >= 10000 /*remainBandWidth*0.01*/) {
                     //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
                     HashMap<String, Integer> hashMap = new HashMap<>();
 
                     List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet());
                     //将客户节点按带宽需求从大到小排序
-//                    entryList.sort(((o1, o2) -> o2.getValue() - o1.getValue()));
-                    entryList.sort(((o1, o2) -> o1.getValue() - o2.getValue()));
+                    entryList.sort(((o1, o2) -> o2.getValue() - o1.getValue()));
+//                    entryList.sort(((o1, o2) -> o1.getValue() - o2.getValue()));
 
                     for (Map.Entry<String, Integer> demandEntry : entryList) {
                         if (remainBandWidth == 0)
@@ -341,7 +341,7 @@ public class Test {
                             continue;
 
                         //curDispatch记录该客户节点本次分配的流量
-                        int curDispatch = 0;
+                        int curDispatch;
                         //将该客户节点的流量都分配给该边缘节点
                         if (remainBandWidth > demandEntry.getValue()) {
                             curDispatch = demandEntry.getValue();
@@ -390,8 +390,6 @@ public class Test {
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = new HashMap<>();
 
         for (String time : timeList){
-            System.out.println(time);
-
             //得到当前时刻，所有客户节点的需求流量
             List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demand_copy.get(time).entrySet());
 
@@ -458,8 +456,8 @@ public class Test {
 //                rate = rate*1.1;
                 rate += 0.05;
                 rate = (rate>=1) ? 1 : rate;
-                System.out.println(rate);
-                System.out.println();
+                /*System.out.println(rate);
+                System.out.println();*/
             }
 
             /*//---------------检测结果正确性-----------------
@@ -536,18 +534,18 @@ public class Test {
                 //该边缘节点在第一轮分配时已经分配过了，那就使该边缘节点尽可能高负载，把能分配的流量都给它
                 //或者该边缘节点的满负载天数还有剩余，将全部的带宽分配给它
                 if(fullLoadTime.get(time).get(site) == 1 || fullLoadDays.get(site) > 0){
-                    int alreadyDispath = 0;
+                    int alreadyDispatch;
                     if(curDemand > resband){
-                        alreadyDispath = resband;
+                        alreadyDispatch = resband;
                         curDemand -= resband;
                         resband = 0;
                     }
                     else {
-                        alreadyDispath = curDemand;
+                        alreadyDispatch = curDemand;
                         resband -= curDemand;
                         curDemand = 0;
                     }
-                    map.put(site, map.getOrDefault(site, 0) + alreadyDispath);
+                    map.put(site, map.getOrDefault(site, 0) + alreadyDispatch);
                     siteWithMaxUseAbleBand.put(site, resband);
                     if(fullLoadTime.get(time).get(site) == 0){
                         fullLoadDays.put(site, fullLoadDays.get(site)-1);
