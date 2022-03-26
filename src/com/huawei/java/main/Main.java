@@ -323,7 +323,7 @@ public class Main {
                 Integer remainBandWidth = timeSiteBandWidth.get(time).get(site);
 
                 //边缘节点在当前能满负载
-                if (needSum >= /*10000*/ remainBandWidth*0.3) {
+                if (needSum >= 500000 /*remainBandWidth*0.3*/) {
                     //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
                     HashMap<String, Integer> hashMap = new HashMap<>();
 
@@ -588,7 +588,40 @@ public class Main {
             }
 
             if (curDemand > 0){
+
+                List<String> list = new ArrayList<>();
                 for(String siteName : siteList){
+                    if( siteWithMaxUseAbleBand.get(siteName) > 0 )
+                        list.add(siteName);
+                }
+
+                int count = list.size();
+                int curDis;
+                for (int i = 0; i < list.size(); i++) {
+                    if(curDemand == 0)
+                        break;
+                    if(i == count-1){
+                        curDis = curDemand;
+                    }
+                    else {
+                        curDis = curDemand / count;
+                    }
+                    curDemand -= curDis;
+                    Integer remainBandWidth = siteWithMaxUseAbleBand.get(list.get(i));
+                    if(remainBandWidth >= curDis){
+                        remainBandWidth -= curDis;
+                        curDis = 0;
+                    }
+                    else {
+                        curDis -= remainBandWidth;
+                        remainBandWidth = 0;
+                    }
+                    curDemand += curDis;
+                    map.put(list.get(i), map.getOrDefault(list.get(i), 0) + siteWithMaxUseAbleBand.get(list.get(i))-remainBandWidth);
+                    siteWithMaxUseAbleBand.put(list.get(i), remainBandWidth);
+                }
+
+                /*for(String siteName : siteList){
                     Integer remainBandWidth = siteWithMaxUseAbleBand.get(siteName);
                     if(curDemand == 0)
                         break;
@@ -605,7 +638,7 @@ public class Main {
                     }
                     map.put(siteName, map.getOrDefault(siteName, 0) + siteWithMaxUseAbleBand.get(siteName)-remainBandWidth);
                     siteWithMaxUseAbleBand.put(siteName, remainBandWidth);
-                }
+                }*/
             }
             entry.setValue(curDemand);
             dispatchStrategy.put(curClient, map);
