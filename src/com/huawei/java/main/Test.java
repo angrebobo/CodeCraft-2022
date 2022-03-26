@@ -267,6 +267,10 @@ public class Test {
 
         //第一轮分配的分配方案，格式是<时间, <边缘节点，<客户节点，分配的流量>>>
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result1 = dispatchFirst(timeSiteBandWidth, demand_copy, fullLoadTime, fullLoadDays);
+        for (String time : timeList){
+            System.out.println(time);
+            System.out.println(result1.get(time));
+        }
         //第二轮分配的分配方案,格式是<时间, <客户节点，<边缘节点，分配的流量>>>
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result2 = dispatchSecond(timeSiteBandWidth, demand_copy, fullLoadTime, fullLoadDays);
 
@@ -370,10 +374,6 @@ public class Test {
                 }
             }
             result.put(time, map);
-        }
-        for (String time : timeList){
-            System.out.println(time);
-            System.out.println(result.get(time));
         }
         return result;
     }
