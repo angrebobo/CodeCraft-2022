@@ -267,10 +267,10 @@ public class Test {
 
         //第一轮分配的分配方案，格式是<时间, <边缘节点，<客户节点，分配的流量>>>
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result1 = dispatchFirst(timeSiteBandWidth, demand_copy, fullLoadTime, fullLoadDays);
-        for (String time : timeList){
+        /*for (String time : timeList){
             System.out.println(time);
             System.out.println(result1.get(time));
-        }
+        }*/
         //第二轮分配的分配方案,格式是<时间, <客户节点，<边缘节点，分配的流量>>>
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result2 = dispatchSecond(timeSiteBandWidth, demand_copy, fullLoadTime, fullLoadDays);
 
@@ -411,9 +411,9 @@ public class Test {
             List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demand_copy.get(time).entrySet());
             //创建最大可用带宽
             HashMap<String, Integer> siteWithMaxUseAbleBand = new HashMap<>();
-            for(Map.Entry<String, Integer> key : timeSiteBandWidth.get(time).entrySet()){
-                siteWithMaxUseAbleBand.put(key.getKey(),
-                        Math.min(key.getValue(), (int)(site_bandwidth.get(key.getKey()) * rate)) );
+            for(Map.Entry<String, Integer> site : timeSiteBandWidth.get(time).entrySet()){
+                siteWithMaxUseAbleBand.put(site.getKey(),
+                        Math.min(site.getValue(), (int)(site_bandwidth.get(site.getKey()) * rate)) );
             }
             //分配策略
             HashMap<String, HashMap<String, Integer>> dispatchStrategy = new HashMap<>();
@@ -447,12 +447,14 @@ public class Test {
             String curClient = entry.getKey();
             //客户节点带宽需求
             int curDemand = entry.getValue();
-            //先处理最大流量需求的客户节点，取出该客户节点和所有边缘节点的qos进行筛选，选出小于qos_config
+
             HashMap<String, Integer> siteMap = new HashMap<>( demandConnectSite.get(curClient) );
+            //siteList存储客户节点能连接的边缘节点
             List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteMap.entrySet());
-            //过滤出小于qos_config的边缘节点
+            //按边缘节点的剩余带宽从大到小排序
+            siteList.sort((o1, o2) -> siteWithMaxUseAbleBand.get(o2.getKey())-siteWithMaxUseAbleBand.get(o1.getKey()));
+
             HashMap<String, Integer> map = new HashMap<>();
-            //连接数少的先满足
 
             for(Map.Entry<String, Integer> site : siteList){
                 if(curDemand == 0)
