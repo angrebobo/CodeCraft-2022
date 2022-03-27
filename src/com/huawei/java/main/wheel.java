@@ -456,7 +456,7 @@ public class wheel {
                 }
                 before_rate = rate;
 //                rate = rate*1.1;
-                rate += 0.005;
+                rate += 0.1;
                 rate = (rate>=1) ? 1 : rate;
                 /*System.out.println(rate);
                 System.out.println();*/
@@ -501,101 +501,110 @@ public class wheel {
             HashMap<String, Integer> siteMap = new HashMap<>( demandConnectSite.get(curClient) );
             //siteList存储客户节点能连接的边缘节点
             List<String> siteList = new ArrayList<>(siteMap.keySet());
-            //按边缘节点的剩余带宽从大到小排序
+
+            while (curDemand > 0 && siteList.size() > 0){
+                //按边缘节点的剩余带宽从大到小排序
 //            siteList.sort((o1, o2) -> siteWithMaxUseAbleBand.get(o2)-siteWithMaxUseAbleBand.get(o1));
-            siteList.sort((Comparator.comparingInt(o -> siteConnectDemand.getOrDefault(o, new HashMap()).size())));
+                siteList.sort((Comparator.comparingInt(o -> siteConnectDemand.getOrDefault(o, new HashMap()).size())));
 
-            //存储权重信息
-            HashMap<String, HashMap<String, BigDecimal>> weightMap = new HashMap<>();
-            BigDecimal weightSum = new BigDecimal("0");
-            for (String siteName : siteMap.keySet()){
-                HashMap<String, BigDecimal> temp = new HashMap<String, BigDecimal>(){{
-                    //边缘节点的带宽的 剩余 带宽容量
+                //存储权重信息
+                HashMap<String, HashMap<String, BigDecimal>> weightMap = new HashMap<>();
+                BigDecimal weightSum = new BigDecimal("0");
+                for (String siteName : siteList){
+                    HashMap<String, BigDecimal> temp = new HashMap<String, BigDecimal>(){{
+                        //边缘节点的带宽的 剩余 带宽容量
 //                    put("capacity", BigDecimal.valueOf( siteWithMaxUseAbleBand.get(siteName) ));
-                    put("capacity", BigDecimal.valueOf( site_bandwidth.get(siteName) ));
-                    put("connect", BigDecimal.valueOf( siteMap.get(siteName) ));
-                }};
-                weightSum = weightSum.add( temp.get("capacity").divide(temp.get("connect"), 5, RoundingMode.CEILING) );
-                weightMap.put(siteName, temp);
-            }
+                        put("capacity", BigDecimal.valueOf( site_bandwidth.get(siteName) ));
+                        put("connect", BigDecimal.valueOf( siteMap.get(siteName) ));
+                    }};
+                    weightSum = weightSum.add( temp.get("capacity").divide(temp.get("connect"), 5, RoundingMode.CEILING) );
+                    weightMap.put(siteName, temp);
+                }
 
-            //存储这一轮的边缘节点的分配情况
-            HashMap<String, Integer> map = dispatchStrategy.getOrDefault(curClient, new HashMap<>());
+                //存储这一轮的边缘节点的分配情况
+                HashMap<String, Integer> map = dispatchStrategy.getOrDefault(curClient, new HashMap<>());
 
-        while (curDemand>0 && siteList.size()>0) {
-            //遍历边缘节点
-            for (String site : siteList) {
-                if (curDemand == 0)
-                    break;
+                //遍历边缘节点
+                for (String site : siteList) {
+                    if (curDemand == 0)
+                        break;
 
-                //resband表示当前site的剩余带宽
-                int resband = siteWithMaxUseAbleBand.get(site);
-                //当前边缘节点已经无带宽可承担，跳过该节点
-                if (resband == 0)
-                    continue;
-                //beforResband记录分配前还剩下多少带宽
-                int beforResband = resband;
+                    //resband表示当前site的剩余带宽
+                    int resband = siteWithMaxUseAbleBand.get(site);
+                    //当前边缘节点已经无带宽可承担，跳过该节点
+                    if (resband == 0)
+                        continue;
+                    //beforResband记录分配前还剩下多少带宽
+                    int beforResband = resband;
 
-                //该边缘节点在第一轮分配时已经分配过了，那就使该边缘节点尽可能高负载，把能分配的流量都给它
-                //或者该边缘节点的满负载天数还有剩余，将全部的带宽分配给它
-                if (fullLoadTime.get(time).get(site) == 1 || fullLoadDays.get(site) > 0) {
-                    int alreadyDispatch;
-                    if (curDemand > resband) {
-                        alreadyDispatch = resband;
-                        curDemand -= resband;
-                        resband = 0;
-                    } else {
-                        alreadyDispatch = curDemand;
-                        resband -= curDemand;
+                    //该边缘节点在第一轮分配时已经分配过了，那就使该边缘节点尽可能高负载，把能分配的流量都给它
+                    //或者该边缘节点的满负载天数还有剩余，将全部的带宽分配给它
+                    if (fullLoadTime.get(time).get(site) == 1 || fullLoadDays.get(site) > 0) {
+                        int alreadyDispatch;
+                        if (curDemand > resband) {
+                            alreadyDispatch = resband;
+                            curDemand -= resband;
+                            resband = 0;
+                        } else {
+                            alreadyDispatch = curDemand;
+                            resband -= curDemand;
+                            curDemand = 0;
+                        }
+                        map.put(site, map.getOrDefault(site, 0) + alreadyDispatch);
+                        siteWithMaxUseAbleBand.put(site, resband);
+                        if (fullLoadTime.get(time).get(site) == 0) {
+                            fullLoadDays.put(site, fullLoadDays.get(site) - 1);
+                            fullLoadTime.get(time).put(site, 1);
+                        }
+                        //该边缘节点分配结束，进入下一个边缘节点
+                        continue;
+                    }
+
+                    //到这里，说明该边缘节点在该时刻不处于高负载的状态，进入均匀分配的步骤
+
+                    //权重计算
+                    BigDecimal numerator = weightMap.get(site).get("capacity").divide(weightMap.get(site).get("connect"), 5, RoundingMode.FLOOR);
+                    BigDecimal weight = numerator.divide(weightSum, 5, RoundingMode.FLOOR);
+                    int curDispatch = weight.multiply(BigDecimal.valueOf(entry.getValue())).setScale(0, BigDecimal.ROUND_DOWN).intValue();
+
+                    if(siteList.indexOf(site) == siteList.size()-1)
+                        curDispatch = curDemand;
+
+                    //防止分配出去的带宽 超过 能分配的带宽
+                    if (curDispatch > curDemand) {
+                        curDispatch = curDemand;
                         curDemand = 0;
+                    } else {
+                        curDemand -= curDispatch;
                     }
-                    map.put(site, map.getOrDefault(site, 0) + alreadyDispatch);
+
+                    //当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
+                    if (resband >= curDispatch) {
+                        resband -= curDispatch;
+                        curDispatch = 0;
+                    }
+                    //当前边缘节点的剩余带宽小于客户节点的带宽需求，先放能放下的部分，继续放下一个边缘节点
+                    else {
+                        curDispatch -= resband;
+                        resband = 0;
+                    }
+
+                    //没分配出去的部分加回到curDemand
+                    curDemand += curDispatch;
+                    //记录剩余带宽
                     siteWithMaxUseAbleBand.put(site, resband);
-                    if (fullLoadTime.get(time).get(site) == 0) {
-                        fullLoadDays.put(site, fullLoadDays.get(site) - 1);
-                        fullLoadTime.get(time).put(site, 1);
-                    }
-                    //该边缘节点分配结束，进入下一个边缘节点
-                    continue;
+                    map.put(site, map.getOrDefault(site, 0) + beforResband - resband);
                 }
-
-                //到这里，说明该边缘节点在该时刻不处于高负载的状态，进入均匀分配的步骤
-
-                //权重计算
-                BigDecimal numerator = weightMap.get(site).get("capacity").divide(weightMap.get(site).get("connect"), 5, RoundingMode.FLOOR);
-                BigDecimal weight = numerator.divide(weightSum, 5, RoundingMode.FLOOR);
-                int curDispatch = weight.multiply(BigDecimal.valueOf(entry.getValue())).setScale(0, BigDecimal.ROUND_DOWN).intValue();
-
-                //防止分配出去的带宽 超过 能分配的带宽
-                if (curDispatch > curDemand) {
-                    curDispatch = curDemand;
-                    curDemand = 0;
-                } else {
-                    curDemand -= curDispatch;
-                }
-
-                //当前边缘节点的剩余带宽大于客户节点的带宽需求，全部放到当前边缘节点
-                if (resband >= curDispatch) {
-                    resband -= curDispatch;
-                    curDispatch = 0;
-                }
-                //当前边缘节点的剩余带宽小于客户节点的带宽需求，先放能放下的部分，继续放下一个边缘节点
-                else {
-                    curDispatch -= resband;
-                    resband = 0;
-                }
-
-                //没分配出去的部分加回到curDemand
-                curDemand += curDispatch;
-                //记录剩余带宽
-                siteWithMaxUseAbleBand.put(site, resband);
-                map.put(site, map.getOrDefault(site, 0) + beforResband - resband);
+                entry.setValue(curDemand);
+                dispatchStrategy.put(curClient, map);
+                siteList.removeIf(site -> siteWithMaxUseAbleBand.get(site) == 0);
             }
-
-            siteList.removeIf(site -> siteWithMaxUseAbleBand.get(site) == 0);
-        }
-
             /*if (curDemand > 0){
+                System.out.println("进入第三轮分配");
+                System.out.println("节点总需求: " + entry.getValue());
+                System.out.println("第三轮分配需求: " + curDemand);
+                System.out.println("占比: " + (double)curDemand/(double) entry.getValue());
+
                 for(String siteName : siteList){
                     Integer remainBandWidth = siteWithMaxUseAbleBand.get(siteName);
                     if(curDemand == 0)
@@ -615,8 +624,7 @@ public class wheel {
                     siteWithMaxUseAbleBand.put(siteName, remainBandWidth);
                 }
             }*/
-            entry.setValue(curDemand);
-            dispatchStrategy.put(curClient, map);
+
 
             if(curDemand > 0){
                 sign = false;
