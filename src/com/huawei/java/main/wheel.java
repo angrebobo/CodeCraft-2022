@@ -456,7 +456,7 @@ public class wheel {
                 }
                 before_rate = rate;
 //                rate = rate*1.1;
-                rate += 0.1;
+                rate += 0.05;
                 rate = (rate>=1) ? 1 : rate;
                 /*System.out.println(rate);
                 System.out.println();*/
@@ -502,6 +502,9 @@ public class wheel {
             //siteList存储客户节点能连接的边缘节点
             List<String> siteList = new ArrayList<>(siteMap.keySet());
 
+            //存储这一轮的边缘节点的分配情况
+            HashMap<String, Integer> map = dispatchStrategy.getOrDefault(curClient, new HashMap<>());
+
             while (curDemand > 0 && siteList.size() > 0){
                 //按边缘节点的剩余带宽从大到小排序
 //            siteList.sort((o1, o2) -> siteWithMaxUseAbleBand.get(o2)-siteWithMaxUseAbleBand.get(o1));
@@ -520,9 +523,6 @@ public class wheel {
                     weightSum = weightSum.add( temp.get("capacity").divide(temp.get("connect"), 5, RoundingMode.CEILING) );
                     weightMap.put(siteName, temp);
                 }
-
-                //存储这一轮的边缘节点的分配情况
-                HashMap<String, Integer> map = dispatchStrategy.getOrDefault(curClient, new HashMap<>());
 
                 //遍历边缘节点
                 for (String site : siteList) {
@@ -596,9 +596,9 @@ public class wheel {
                     map.put(site, map.getOrDefault(site, 0) + beforResband - resband);
                 }
                 entry.setValue(curDemand);
-                dispatchStrategy.put(curClient, map);
                 siteList.removeIf(site -> siteWithMaxUseAbleBand.get(site) == 0);
             }
+            dispatchStrategy.put(curClient, map);
             /*if (curDemand > 0){
                 System.out.println("进入第三轮分配");
                 System.out.println("节点总需求: " + entry.getValue());
