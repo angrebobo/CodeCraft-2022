@@ -298,7 +298,6 @@ public class wheel {
             //根据连接的客户节点的流量总和大小来排序
             List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteConnectDemandSum.get(time).entrySet());
             siteList.sort((o1, o2) -> o2.getValue()-o1.getValue());
-//            siteList.sort((o1, o2) -> o1.getValue()-o2.getValue());
 
             //map存分配方案,注意格式是<边缘节点，<客户节点，分配的流量>>
             HashMap<String, HashMap<String, Integer>> map = new HashMap<>();
@@ -334,7 +333,6 @@ public class wheel {
                     List<Map.Entry<String, Integer>> entryList = new ArrayList<>(demandNeed.entrySet());
                     //将客户节点按带宽需求从大到小排序
                     entryList.sort(((o1, o2) -> o2.getValue() - o1.getValue()));
-//                    entryList.sort(((o1, o2) -> o1.getValue() - o2.getValue()));
 
                     for (Map.Entry<String, Integer> demandEntry : entryList) {
                         if (remainBandWidth == 0)
@@ -420,31 +418,8 @@ public class wheel {
                         siteWithMaxUseAbleBand.put(site.getKey(), a);
                 }
 
-                /*//---------------检测结果正确性-----------------
-                Integer demandNeedSum = 0;
-                for(Map.Entry<String, Integer> entry: demandList){
-                    demandNeedSum += entry.getValue();
-                }
-                System.out.println("分配前客户节点总需求: " + demandNeedSum);
-                Integer siteSum;
-                siteSum = siteWithMaxUseAbleBand.values().stream().mapToInt(Integer::intValue).sum();
-                System.out.println("分配前边缘节点总带宽: " + siteSum);
-                //---------------------------------------------*/
-
+                //执行分配
                 signal = dispatchBasedDemandClientAndUsedBandSite(demandList, siteWithMaxUseAbleBand, dispatchStrategy, fullLoadTime, fullLoadDays, time);
-
-                /*//---------------检测结果正确性-----------------
-                Integer demandNeedSum1 = 0;
-                for(Map.Entry<String, Integer> entry: demandList){
-                    demandNeedSum1 += entry.getValue();
-                }
-                System.out.println("分配后客户节点总需求: " + demandNeedSum1);
-                System.out.println("这一轮总共分配出去" + (demandNeedSum-demandNeedSum1) + "带宽");
-                Integer siteSum1;
-                siteSum1 = siteWithMaxUseAbleBand.values().stream().mapToInt(Integer::intValue).sum();
-                System.out.println("分配后边缘节点总带宽: " + siteSum1);
-                System.out.println("这一轮总共承担了" + (siteSum-siteSum1) + "带宽");
-                //---------------------------------------------*/
 
                 //将siteWithMaxUseAbleBand更新回timeSiteBandWidth
                 for (String site : siteWithMaxUseAbleBand.keySet()){
@@ -455,24 +430,9 @@ public class wheel {
                     }
                 }
                 before_rate = rate;
-//                rate = rate*1.1;
                 rate += 0.05;
                 rate = (rate>=1) ? 1 : rate;
-                /*System.out.println(rate);
-                System.out.println();*/
             }
-
-            /*//---------------检测结果正确性-----------------
-            //            int dsum = demand_copy.get(time).values().stream().mapToInt(Integer::intValue).sum();
-            //            System.out.println("该时刻客户节点的总需求为:" +dsum);
-            //            int starSum = 0;
-            //            for(String name : demand_copy.get(time).keySet()){
-            //                starSum += dispatchStrategy.get(name).values().stream().mapToInt(Integer::intValue).sum();
-            //            }
-            //            System.out.println("分配策略总共分配了" + starSum +"带宽");
-            //
-            //            //--------------------------------------------*/
-
             result.put(time, dispatchStrategy);
         }
         return result;
@@ -567,6 +527,7 @@ public class wheel {
                     BigDecimal weight = numerator.divide(weightSum, 5, RoundingMode.FLOOR);
                     int curDispatch = weight.multiply(BigDecimal.valueOf(entry.getValue())).setScale(0, BigDecimal.ROUND_DOWN).intValue();
 
+                    //当前节点是这一批最后一个边缘，将全部需求流量给它，防止因上面的小数误差少分配流量
                     if(siteList.indexOf(site) == siteList.size()-1)
                         curDispatch = curDemand;
 
@@ -599,32 +560,6 @@ public class wheel {
                 siteList.removeIf(site -> siteWithMaxUseAbleBand.get(site) == 0);
             }
             dispatchStrategy.put(curClient, map);
-            /*if (curDemand > 0){
-                System.out.println("进入第三轮分配");
-                System.out.println("节点总需求: " + entry.getValue());
-                System.out.println("第三轮分配需求: " + curDemand);
-                System.out.println("占比: " + (double)curDemand/(double) entry.getValue());
-
-                for(String siteName : siteList){
-                    Integer remainBandWidth = siteWithMaxUseAbleBand.get(siteName);
-                    if(curDemand == 0)
-                        break;
-                    if(remainBandWidth == 0)
-                        continue;
-
-                    if(remainBandWidth >= curDemand){
-                        remainBandWidth -= curDemand;
-                        curDemand = 0;
-                    }
-                    else {
-                        curDemand -= remainBandWidth;
-                        remainBandWidth = 0;
-                    }
-                    map.put(siteName, map.getOrDefault(siteName, 0) + siteWithMaxUseAbleBand.get(siteName)-remainBandWidth);
-                    siteWithMaxUseAbleBand.put(siteName, remainBandWidth);
-                }
-            }*/
-
 
             if(curDemand > 0){
                 sign = false;
@@ -637,7 +572,6 @@ public class wheel {
         init();
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = dispatch();
         ToFile.writeToFile(filepath, timeList, demandName, result);
-//        ToFile.writeLog(logPath, log);
 
         //对最终的分配方案做校验
         Check.check_1(demand, demandName, timeList, siteName, result);
