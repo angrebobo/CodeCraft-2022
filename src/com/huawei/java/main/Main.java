@@ -297,8 +297,9 @@ public class Main {
 
             //根据连接的客户节点的流量总和大小来排序
             List<Map.Entry<String, Integer>> siteList = new ArrayList<>(siteConnectDemandSum.get(time).entrySet());
+//            siteList.sort((o1, o2) -> o2.getValue()/(siteConnectDemand.getOrDefault(o1, new HashMap()).size()+1)
+//                    -o1.getValue()/(siteConnectDemand.getOrDefault(o1, new HashMap()).size()+1));
             siteList.sort((o1, o2) -> o2.getValue()-o1.getValue());
-//            siteList.sort((o1, o2) -> o1.getValue()-o2.getValue());
 
             //map存分配方案,注意格式是<边缘节点，<客户节点，分配的流量>>
             HashMap<String, HashMap<String, Integer>> map = new HashMap<>();
@@ -395,7 +396,7 @@ public class Main {
             //得到当前时刻，所有客户节点的需求流量
             List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demand_copy.get(time).entrySet());
 
-            double rate = 0.05;
+            double rate = 0.1;
             double before_rate = 0;
             //创建最大可用带宽
             HashMap<String, Integer> siteWithMaxUseAbleBand = new HashMap<>();
@@ -503,7 +504,7 @@ public class Main {
             List<String> siteList = new ArrayList<>(siteMap.keySet());
             //按边缘节点的剩余带宽从大到小排序
 //            siteList.sort((o1, o2) -> siteWithMaxUseAbleBand.get(o2)-siteWithMaxUseAbleBand.get(o1));
-            siteList.sort((Comparator.comparingInt(o -> siteConnectDemand.getOrDefault(o, new HashMap()).size())));
+
 
             //存储权重信息
             HashMap<String, HashMap<String, BigDecimal>> weightMap = new HashMap<>();
@@ -511,8 +512,8 @@ public class Main {
             for (String siteName : siteMap.keySet()){
                 HashMap<String, BigDecimal> temp = new HashMap<String, BigDecimal>(){{
                     //边缘节点的带宽的 剩余 带宽容量
-                    put("capacity", BigDecimal.valueOf( siteWithMaxUseAbleBand.get(siteName) ));
-                    put("connect", BigDecimal.valueOf( siteMap.get(siteName) ));
+                    put("capacity", BigDecimal.valueOf( site_bandwidth.get(siteName) ));
+                    put("connect", BigDecimal.valueOf( siteMap.get(siteName)));
                 }};
                 weightSum = weightSum.add( temp.get("capacity").divide(temp.get("connect"), 5, RoundingMode.CEILING) );
                 weightMap.put(siteName, temp);
@@ -520,7 +521,8 @@ public class Main {
 
             //存储这一轮的边缘节点的分配情况
             HashMap<String, Integer> map = dispatchStrategy.getOrDefault(curClient, new HashMap<>());
-
+//            siteList.sort((Comparator.comparingInt(o -> siteConnectDemand.getOrDefault(o, new HashMap()).size())));
+            siteList.sort((o1, o2) -> siteConnectDemandSum.get(time).get(o2)-siteConnectDemandSum.get(time).get(o1));
             //遍历边缘节点
             for(String site : siteList){
                 if(curDemand == 0)
@@ -592,6 +594,7 @@ public class Main {
                 map.put(site, map.getOrDefault(site, 0) + beforResband-resband);
             }
 
+
             if (curDemand > 0){
                 for(String siteName : siteList){
                     Integer remainBandWidth = siteWithMaxUseAbleBand.get(siteName);
@@ -612,12 +615,13 @@ public class Main {
                     siteWithMaxUseAbleBand.put(siteName, remainBandWidth);
                 }
             }
-            entry.setValue(curDemand);
-            dispatchStrategy.put(curClient, map);
-
             if(curDemand > 0){
                 sign = false;
             }
+            entry.setValue(curDemand);
+            dispatchStrategy.put(curClient, map);
+
+
         }
         return sign;
     }
