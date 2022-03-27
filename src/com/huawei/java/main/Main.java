@@ -326,7 +326,7 @@ public class Main {
                 Integer remainBandWidth = timeSiteBandWidth.get(time).get(site);
 
                 //边缘节点在当前能满负载
-                if (needSum >= 2000000 /*remainBandWidth*0.01*/) {
+                if (needSum >= 1500000 /*remainBandWidth*0.01*/) {
                     //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
                     HashMap<String, Integer> hashMap = new HashMap<>();
 
