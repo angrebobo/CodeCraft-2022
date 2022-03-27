@@ -41,20 +41,20 @@ public class Main {
     static String maxValue = "max";
 
     // ！！！在idea本地跑用这个路径
-//    static String demandFile = "data/demand.csv";
-//    static String site_bandwidthFile = "data/site_bandwidth.csv";
-//    static String qosFile = "data/qos.csv";
-//    static String qos_config = "data/config.ini";
-//    static String filepath = "output/solution.txt";
-//    static String logPath = "output/log.txt";
+    static String demandFile = "data/demand.csv";
+    static String site_bandwidthFile = "data/site_bandwidth.csv";
+    static String qosFile = "data/qos.csv";
+    static String qos_config = "data/config.ini";
+    static String filepath = "output/solution.txt";
+    static String logPath = "output/log.txt";
 
     // ！！！提交到线上用这个环境
-    static String demandFile = "/data/demand.csv";
-    static String site_bandwidthFile = "/data/site_bandwidth.csv";
-    static String qosFile = "/data/qos.csv";
-    static String qos_config = "/data/config.ini";
-    static String filepath = "/output/solution.txt";
-    static String logPath = "/output/log.txt";
+//    static String demandFile = "/data/demand.csv";
+//    static String site_bandwidthFile = "/data/site_bandwidth.csv";
+//    static String qosFile = "/data/qos.csv";
+//    static String qos_config = "/data/config.ini";
+//    static String filepath = "/output/solution.txt";
+//    static String logPath = "/output/log.txt";
 
     /**
      * @Description 初始化方法，读入文件并存储到本地
@@ -282,7 +282,7 @@ public class Main {
             HashMap<String, HashMap<String, Integer>> demand_copy,
             HashMap<String, HashMap<String, Integer>> fullLoadTime,
             HashMap<String, Integer> fullLoadDays){
-
+        System.out.println("进入第一轮分配");
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = new HashMap<>();
 
         //每轮时间，最多有countLimit个边缘节点达到高负载
@@ -326,7 +326,7 @@ public class Main {
                 Integer remainBandWidth = timeSiteBandWidth.get(time).get(site);
 
                 //边缘节点在当前能满负载
-                if (needSum >= 1500000 /*remainBandWidth*0.01*/) {
+                if (needSum >= 10000 /*remainBandWidth*0.01*/) {
                     //hashMap存储分配的流量，格式和上面的map对应，<客户节点，分配的流量>
                     HashMap<String, Integer> hashMap = new HashMap<>();
 
@@ -385,7 +385,7 @@ public class Main {
             HashMap<String, HashMap<String, Integer>> demand_copy,
             HashMap<String, HashMap<String, Integer>> fullLoadTime,
             HashMap<String, Integer> fullLoadDays) {
-
+        System.out.println("进入第二轮分配");
         //第二轮分配的分配方案,格式是<时间, <客户节点，<边缘节点，分配的流量>>>
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result = new HashMap<>();
 
@@ -393,7 +393,7 @@ public class Main {
             //得到当前时刻，所有客户节点的需求流量
             List<Map.Entry<String, Integer>> demandList = new ArrayList<>(demand_copy.get(time).entrySet());
 
-            double rate = 0.005;
+            double rate = 0.1;
             double before_rate = 0;
             //创建最大可用带宽
             HashMap<String, Integer> siteWithMaxUseAbleBand = new HashMap<>();
@@ -430,7 +430,7 @@ public class Main {
                     }
                 }
                 before_rate = rate;
-                rate += 0.005;
+                rate += 0.05;
                 rate = (rate>=1) ? 1 : rate;
             }
             result.put(time, dispatchStrategy);
@@ -574,7 +574,7 @@ public class Main {
         ToFile.writeToFile(filepath, timeList, demandName, result);
 
         //对最终的分配方案做校验
-//        Check.check_1(demand, demandName, timeList, siteName, result);
-//        Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
+        Check.check_1(demand, demandName, timeList, siteName, result);
+        Check.check_2(site_bandwidth, demandName, timeList, siteName, result);
     }
 }
