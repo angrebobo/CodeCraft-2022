@@ -40,6 +40,7 @@ public class Main {
     static HashMap<String, HashMap<String, Integer>> siteConnectDemandSum = new HashMap<>();
     static String maxValue = "max";
 
+
     // ！！！在idea本地跑用这个路径
 //    static String demandFile = "data/demand.csv";
 //    static String site_bandwidthFile = "data/site_bandwidth.csv";
@@ -272,7 +273,6 @@ public class Main {
 
         //第二轮分配的分配方案,格式是<时间, <客户节点，<边缘节点，分配的流量>>>
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result2 = dispatchSecond(timeSiteBandWidth, demand_copy, fullLoadTime, fullLoadDays);
-
         //因为result1和result2的格式不同，要统一转化为result2的那种格式
         return ToFile.trans(result1, result2, siteName, demandName, timeList);
     }

@@ -39,6 +39,7 @@ public class wheel {
     //siteConnectDemandSum存储边缘节点能连接到的客户节点，格式为<时刻，<边缘节点名称，连接的客户节点的流量总和>>
     static HashMap<String, HashMap<String, Integer>> siteConnectDemandSum = new HashMap<>();
     static String maxValue = "max";
+    static HashMap<String, HashMap<String, Double>> siteUsedRate = new HashMap<>();
 
     // ！！！在idea本地跑用这个路径
     static String demandFile = "data/demand.csv";
@@ -204,6 +205,15 @@ public class wheel {
 
         //初始化siteConnectDemandSum
         updateSiteConnectDemandSum(timeList, siteName);
+
+        //初始化siteUsedRate
+        for (String time : timeList){
+            HashMap<String, Double> map = new HashMap<>();
+            for(String site : siteName){
+                map.put(site, 0.0);
+            }
+            siteUsedRate.put(time, map);
+        }
     }
 
     /**
@@ -272,7 +282,12 @@ public class wheel {
 
         //第二轮分配的分配方案,格式是<时间, <客户节点，<边缘节点，分配的流量>>>
         HashMap<String, HashMap<String, HashMap<String, Integer>>> result2 = dispatchSecond(timeSiteBandWidth, demand_copy, fullLoadTime, fullLoadDays);
-
+        for (String time : timeList){
+            System.out.println(time);
+            System.out.println(siteUsedRate.get(time));
+            System.out.println();
+            System.out.println();
+        }
         //因为result1和result2的格式不同，要统一转化为result2的那种格式
         return ToFile.trans(result1, result2, siteName, demandName, timeList);
     }
@@ -365,6 +380,8 @@ public class wheel {
                     fullLoadDays.put(site, fullLoadDays.get(site)-1);
                     //更新该边缘节点在所有时刻中的带宽最大值
                     fullLoadDays.put(site+maxValue, Math.max(fullLoadDays.get(site+maxValue), timeSiteBandWidth.get(time).get(site)-remainBandWidth));
+                    //更新边缘节点负载率
+                    siteUsedRate.get(time).put(site, (double) (timeSiteBandWidth.get(time).get(site)-remainBandWidth) / (double)timeSiteBandWidth.get(time).get(site));
                     //更新边缘节点的带宽
                     timeSiteBandWidth.get(time).put(site, remainBandWidth);
                     //更新siteConnectDemandSum
@@ -478,7 +495,7 @@ public class wheel {
                         //边缘节点的带宽的 剩余 带宽容量
 //                    put("capacity", BigDecimal.valueOf( siteWithMaxUseAbleBand.get(siteName) ));
                         put("capacity", BigDecimal.valueOf( site_bandwidth.get(siteName) ));
-                        put("connect", BigDecimal.valueOf( siteMap.get(siteName) ));
+                        put("connect", BigDecimal.valueOf( siteMap.get(siteName) + siteUsedRate.get(time).get(siteName) ));
                     }};
                     weightSum = weightSum.add( temp.get("capacity").divide(temp.get("connect"), 5, RoundingMode.CEILING) );
                     weightMap.put(siteName, temp);
@@ -495,7 +512,7 @@ public class wheel {
                     if (resband == 0)
                         continue;
                     //beforResband记录分配前还剩下多少带宽
-                    int beforResband = resband;
+                                       int beforResband = resband;
 
                     //该边缘节点在第一轮分配时已经分配过了，那就使该边缘节点尽可能高负载，把能分配的流量都给它
                     //或者该边缘节点的满负载天数还有剩余，将全部的带宽分配给它
@@ -516,6 +533,10 @@ public class wheel {
                             fullLoadDays.put(site, fullLoadDays.get(site) - 1);
                             fullLoadTime.get(time).put(site, 1);
                         }
+                        //更新该边缘节点在所有时刻中的带宽最大值
+                        fullLoadDays.put(site+maxValue, Math.max(fullLoadDays.get(site+maxValue), alreadyDispatch));
+                        //更新边缘节点负载率
+                        siteUsedRate.get(time).put(site, (site_bandwidth.get(site) * siteUsedRate.get(time).get(site) + alreadyDispatch) / (double) site_bandwidth.get(site));
                         //该边缘节点分配结束，进入下一个边缘节点
                         continue;
                     }
@@ -555,6 +576,8 @@ public class wheel {
                     //记录剩余带宽
                     siteWithMaxUseAbleBand.put(site, resband);
                     map.put(site, map.getOrDefault(site, 0) + beforResband - resband);
+                    //更新边缘节点负载率
+                    siteUsedRate.get(time).put(site, (site_bandwidth.get(site) * siteUsedRate.get(time).get(site) + beforResband - resband) / (double) site_bandwidth.get(site));
                 }
                 entry.setValue(curDemand);
                 siteList.removeIf(site -> siteWithMaxUseAbleBand.get(site) == 0);
