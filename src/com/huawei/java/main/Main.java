@@ -430,7 +430,7 @@ public class Main {
                     }
                 }
                 before_rate = rate;
-                rate += 0.05;
+                rate += 0.1;
                 rate = (rate>=1) ? 1 : rate;
             }
             result.put(time, dispatchStrategy);
